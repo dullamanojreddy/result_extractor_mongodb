@@ -1,7 +1,10 @@
 import API_URL from '../config/api';
+import { getAuthHeaders } from './auth';
 
 export async function getStudents() {
-  const response = await fetch(`${API_URL}/api/students`);
+  const response = await fetch(`${API_URL}/api/students`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch students');
   }
@@ -9,7 +12,9 @@ export async function getStudents() {
 }
 
 export async function getStats() {
-  const response = await fetch(`${API_URL}/api/stats`);
+  const response = await fetch(`${API_URL}/api/stats`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch stats');
   }
@@ -65,7 +70,9 @@ export async function getUniqueSubjectNames() {
 }
 
 export async function searchStudentsBySubject(query: string) {
-  const response = await fetch(`${API_URL}/api/search-subject?q=${encodeURIComponent(query)}`);
+  const response = await fetch(`${API_URL}/api/search-subject?q=${encodeURIComponent(query)}`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to search students');
   }
@@ -84,7 +91,7 @@ export async function getSubjectFilteredResults(params: { subject: string; prefi
 export async function runClassResult(config: any) {
   const response = await fetch(`${API_URL}/api/class-result`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(config)
   });
   if (!response.ok) {
@@ -106,7 +113,9 @@ export async function runSubjectResult(config: { subject_name: string; prefix?: 
 }
 
 export async function getAdvancedAnalytics() {
-  const response = await fetch(`${API_URL}/api/analytics/advanced`);
+  const response = await fetch(`${API_URL}/api/analytics/advanced`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch analytics');
   }

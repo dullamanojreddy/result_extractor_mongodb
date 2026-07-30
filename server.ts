@@ -18,6 +18,10 @@ import { pipeline } from './src/server/services/ScraperPipeline.js';
 import { AnalyticsService } from './src/server/services/AnalyticsService.js';
 import { RawHtmlStorage } from './src/server/services/RawHtmlStorage.js';
 import { Student } from './src/types.js';
+import { authMiddleware, AuthRequest } from './src/server/middleware/auth.js';
+import authRoutes from './src/server/routes/auth.js';
+import collegeRoutes from './src/server/routes/colleges.js';
+import mongoose from 'mongoose';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
@@ -59,6 +63,18 @@ async function startServer() {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
 
+  // Connect Mongoose for auth models
+  try {
+    await mongoose.connect(process.env.MONGO_URI || env.mongoUri);
+    console.log('Mongoose connected for auth');
+  } catch (err) {
+    console.error('Mongoose connection error:', err);
+  }
+
+  // Auth routes (public - no auth required)
+  app.use('/api/auth', authRoutes);
+  app.use('/api/colleges', collegeRoutes);
+
   // Pipeline Routes
   app.post('/api/pipeline/start', (req, res) => {
     try {
@@ -89,9 +105,9 @@ async function startServer() {
     res.json(pipeline.getStats());
   });
 
-  // Analytics Routes
-  app.get('/api/analytics/advanced', async (_req, res) => {
-    res.json(await AnalyticsService.getAdvancedAnalytics());
+  // Analytics Routes (protected - college isolated)
+  app.get('/api/analytics/advanced', authMiddleware, async (req: AuthRequest, res) => {
+    res.json(await AnalyticsService.getAdvancedAnalytics(req.user?.collegeId));
   });
 
   app.get('/api/analytics/subject', async (req, res) => {
@@ -118,10 +134,10 @@ async function startServer() {
     res.json(student);
   });
 
-  // Get all students
-  app.get('/api/students', async (_req, res) => {
+  // Get all students (protected - college isolated)
+  app.get('/api/students', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const all = await db.getAllStudents();
+      const all = await db.getAllStudents(req.user?.collegeId);
       res.json(all);
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Failed to fetch students' });
@@ -325,9 +341,9 @@ async function startServer() {
     }
   });
 
-  // Get Stats
-  app.get('/api/stats', async (_req, res) => {
-    res.json(await db.getStats());
+  // Get Stats (protected - college isolated)
+  app.get('/api/stats', authMiddleware, async (req: AuthRequest, res) => {
+    res.json(await db.getStats(req.user?.collegeId));
   });
 
   // Get Unique Subject Names for Suggestions

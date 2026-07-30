@@ -139,11 +139,13 @@ class DatabaseService {
 
   // Student CRUD - All operations now use MongoDB directly
 
-  public async getStudentByHallTicket(ht: string): Promise<Student | null> {
+  public async getStudentByHallTicket(ht: string, collegeId?: string): Promise<Student | null> {
     if (!this.mongoDb || !this.mongoConnected) return null;
     
     try {
-      const doc = await this.mongoDb.collection('students').findOne({ hall_ticket: ht });
+      const query: any = { hall_ticket: ht };
+      if (collegeId) query.collegeId = collegeId;
+      const doc = await this.mongoDb.collection('students').findOne(query);
       if (!doc) return null;
       
       // Try to get subjects from student_subjects collection first, fall back to embedded array
@@ -176,14 +178,14 @@ class DatabaseService {
     }
   }
 
-  public async saveStudentAsync(student: Student): Promise<Student> {
+  public async saveStudentAsync(student: Student, collegeId?: string): Promise<Student> {
     if (!this.mongoDb || !this.mongoConnected) {
       throw new Error('MongoDB not connected');
     }
 
     try {
       // Save main student record
-      const studentDoc = {
+      const studentDoc: any = {
         hall_ticket: student.hall_ticket,
         name: student.name,
         father_name: student.father_name,
@@ -196,6 +198,11 @@ class DatabaseService {
         mandatory_requirements: student.mandatory_requirements || [],
         created_at: new Date().toISOString()
       };
+
+      // Add collegeId if provided (for multi-tenant isolation)
+      if (collegeId) {
+        studentDoc.collegeId = collegeId;
+      }
 
       await this.mongoDb.collection('students').updateOne(
         { hall_ticket: student.hall_ticket },
@@ -261,12 +268,14 @@ class DatabaseService {
     }
   }
 
-  public async getAllStudents(): Promise<Student[]> {
+  public async getAllStudents(collegeId?: string): Promise<Student[]> {
     if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
+      const query: any = {};
+      if (collegeId) query.collegeId = collegeId;
       const students = await this.mongoDb.collection('students')
-        .find({})
+        .find(query)
         .sort({ hall_ticket: 1 })
         .toArray();
       
@@ -303,7 +312,7 @@ class DatabaseService {
     }
   }
 
-  public async getStudentsBySubject(subjectNameQuery: string): Promise<Array<{
+  public async getStudentsBySubject(subjectNameQuery: string, collegeId?: string): Promise<Array<{
     hall_ticket: string;
     name: string;
     grade: string;
@@ -315,9 +324,10 @@ class DatabaseService {
     
     try {
       // 1. Try to find an EXACT match first (prevents Theory from showing Labs)
+      const matchStage: any = { subject_name: subjectNameQuery };
       const exactDocs = await this.mongoDb.collection('student_subjects')
         .aggregate([
-          { $match: { subject_name: subjectNameQuery } },
+          { $match: matchStage },
           { $lookup: {
               from: 'students',
               localField: 'hall_ticket',
@@ -325,6 +335,7 @@ class DatabaseService {
               as: 'student'
           }},
           { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } },
+          ...(collegeId ? [{ $match: { 'student.collegeId': collegeId } }] : []),
           { $sort: { hall_ticket: 1 } }
         ])
         .toArray();
@@ -342,14 +353,15 @@ class DatabaseService {
       }
 
       // 3. Fallback: If no exact match, use regex (e.g., searching for "lab")
+      const partialMatchStage: any = {
+        $or: [
+          { subject_name: { $regex: subjectNameQuery, $options: 'i' } },
+          { subject_code: { $regex: subjectNameQuery, $options: 'i' } }
+        ]
+      };
       const partialDocs = await this.mongoDb.collection('student_subjects')
         .aggregate([
-          { $match: { 
-            $or: [
-              { subject_name: { $regex: subjectNameQuery, $options: 'i' } },
-              { subject_code: { $regex: subjectNameQuery, $options: 'i' } }
-            ]
-          }},
+          { $match: partialMatchStage },
           { $lookup: {
               from: 'students',
               localField: 'hall_ticket',
@@ -357,6 +369,7 @@ class DatabaseService {
               as: 'student'
           }},
           { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } },
+          ...(collegeId ? [{ $match: { 'student.collegeId': collegeId } }] : []),
           { $sort: { hall_ticket: 1 } }
         ])
         .toArray();
@@ -559,7 +572,7 @@ class DatabaseService {
   }
 
   // Stats
-  public async getStats(): Promise<DatabaseStats> {
+  public async getStats(collegeId?: string): Promise<DatabaseStats> {
     if (!this.mongoDb || !this.mongoConnected) {
       return {
         driver: 'mongodb',
@@ -580,83 +593,150 @@ class DatabaseService {
     }
 
     try {
-      const students = await this.mongoDb.collection('students').find({}).toArray();
-      const found = students.filter(s => !s.is_missing);
-      const missing = students.filter(s => s.is_missing);
+      // Use aggregation for efficient stats calculation
+      const matchStage: any = {};
+      if (collegeId) matchStage.collegeId = collegeId;
+      
+      const statsAggregation = await this.mongoDb.collection('students').aggregate([
+        ...(collegeId ? [{ $match: matchStage }] : []),
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            found: { $sum: { $cond: ['$is_missing', 0, 1] } },
+            missing: { $sum: { $cond: ['$is_missing', 1, 0] } },
+            sgpaValues: {
+              $push: {
+                $cond: [
+                  { $and: ['$sgpa', { $ne: '-' }] },
+                  { $toDouble: '$sgpa' },
+                  null
+                ]
+              }
+            },
+            cgpaValues: {
+              $push: {
+                $cond: [
+                  { $and: ['$cgpa', { $ne: '-' }] },
+                  { $toDouble: '$cgpa' },
+                  null
+                ]
+              }
+            }
+          }
+        },
+        {
+          $project: {
+            total: 1,
+            found: 1,
+            missing: 1,
+            avgSgpa: { $avg: '$sgpaValues' },
+            avgCgpa: { $avg: '$cgpaValues' },
+            maxSgpa: { $max: '$sgpaValues' },
+            maxCgpa: { $max: '$cgpaValues' }
+          }
+        }
+      ]).toArray();
 
-      let totalSgpa = 0;
-      let sgpaCount = 0;
-      let totalCgpa = 0;
-      let cgpaCount = 0;
-      let highestSgpa = 0;
-      let highestCgpa = 0;
+      const stats = statsAggregation[0] || { total: 0, found: 0, missing: 0, avgSgpa: 0, avgCgpa: 0, maxSgpa: 0, maxCgpa: 0 };
+
+      // Get total subjects count
       let totalSubjects = 0;
-
-      for (const s of found) {
-        if (s.sgpa && s.sgpa !== '-') {
-          const val = parseFloat(s.sgpa);
-          if (!isNaN(val)) {
-            totalSgpa += val;
-            sgpaCount++;
-            if (val > highestSgpa) highestSgpa = val;
-          }
-        }
-        if (s.cgpa && s.cgpa !== '-') {
-          const val = parseFloat(s.cgpa);
-          if (!isNaN(val)) {
-            totalCgpa += val;
-            cgpaCount++;
-            if (val > highestCgpa) highestCgpa = val;
-          }
-        }
-      }
-
-      // Get actual subject count from student_subjects collection
       try {
         totalSubjects = await this.mongoDb.collection('student_subjects').countDocuments();
       } catch (_) {}
 
-      const sortedBySgpa = [...found]
-        .filter(s => s.sgpa !== '-')
-        .sort((a, b) => (parseFloat(b.sgpa) || 0) - (parseFloat(a.sgpa) || 0));
+      // Get top performers (students with valid SGPA, sorted descending)
+      const topPerformersQuery: any = { is_missing: false, sgpa: { $ne: '-' } };
+      if (collegeId) topPerformersQuery.collegeId = collegeId;
+      const topPerformers = await this.mongoDb.collection('students')
+        .find(topPerformersQuery)
+        .sort({ sgpa: -1 })
+        .limit(5)
+        .toArray();
 
-      let passCount = 0;
-      let failCount = 0;
-
-      for (const s of found) {
-        const sgpaVal = parseFloat(s.sgpa);
-        // Check for failed subjects from student_subjects
-        let hasFailedSubj = false;
-        try {
-          const count = await this.mongoDb.collection('student_subjects')
-            .countDocuments({ hall_ticket: s.hall_ticket, grade: 'F' });
-          hasFailedSubj = count > 0;
-        } catch (_) {}
-        
-        if (hasFailedSubj || isNaN(sgpaVal) || sgpaVal < 5.0) {
-          failCount++;
-        } else {
-          passCount++;
+      // Count pass/fail using aggregation
+      const passFailMatch: any = { is_missing: false };
+      if (collegeId) passFailMatch.collegeId = collegeId;
+      const passFailAggregation = await this.mongoDb.collection('students').aggregate([
+        { $match: passFailMatch },
+        {
+          $lookup: {
+            from: 'student_subjects',
+            localField: 'hall_ticket',
+            foreignField: 'hall_ticket',
+            as: 'subjects'
+          }
+        },
+        {
+          $addFields: {
+            hasFailedSubject: {
+              $gt: [
+                {
+                  $size: {
+                    $filter: {
+                      input: '$subjects',
+                      cond: { $eq: ['$$this.grade', 'F'] }
+                    }
+                  }
+                },
+                0
+              ]
+            },
+            sgpaNum: {
+              $cond: [
+                { $eq: ['$sgpa', '-'] },
+                null,
+                { $toDouble: '$sgpa' }
+              ]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            pass: {
+              $sum: {
+                $cond: [
+                  { $and: [{ $not: '$hasFailedSubject' }, '$sgpaNum', { $gte: ['$sgpaNum', 5.0] }] },
+                  1,
+                  0
+                ]
+              }
+            },
+            fail: {
+              $sum: {
+                $cond: [
+                  { $or: ['$hasFailedSubject', { $not: '$sgpaNum' }, { $lt: ['$sgpaNum', 5.0] }] },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
         }
-      }
+      ]).toArray();
 
-      const passPercentage = found.length > 0 ? parseFloat(((passCount / found.length) * 100).toFixed(1)) : 0;
+      const passFailStats = passFailAggregation[0] || { pass: 0, fail: 0 };
+      const passCount = passFailStats.pass;
+      const failCount = passFailStats.fail;
+      const passPercentage = stats.found > 0 ? parseFloat(((passCount / stats.found) * 100).toFixed(1)) : 0;
 
       return {
         driver: 'mongodb',
         mongodb_connected: true,
-        total_students: students.length,
-        found_students: found.length,
-        missing_students: missing.length,
+        total_students: stats.total,
+        found_students: stats.found,
+        missing_students: stats.missing,
         total_subjects: totalSubjects,
-        avg_sgpa: sgpaCount > 0 ? parseFloat((totalSgpa / sgpaCount).toFixed(2)) : 0,
-        avg_cgpa: cgpaCount > 0 ? parseFloat((totalCgpa / cgpaCount).toFixed(2)) : 0,
-        highest_sgpa: highestSgpa,
-        highest_cgpa: highestCgpa,
+        avg_sgpa: stats.avgSgpa ? parseFloat(stats.avgSgpa.toFixed(2)) : 0,
+        avg_cgpa: stats.avgCgpa ? parseFloat(stats.avgCgpa.toFixed(2)) : 0,
+        highest_sgpa: stats.maxSgpa || 0,
+        highest_cgpa: stats.maxCgpa || 0,
         pass_count: passCount,
         fail_count: failCount,
         pass_percentage: passPercentage,
-        top_performers: sortedBySgpa.slice(0, 5).map(s => ({
+        top_performers: topPerformers.map(s => ({
           hall_ticket: s.hall_ticket,
           name: s.name,
           sgpa: s.sgpa,

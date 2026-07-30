@@ -11,14 +11,22 @@ import { PipelineMonitorModal } from './components/PipelineMonitorModal';
 import Dashboard from './pages/Dashboard';
 import AnalyticsPage from './pages/Analytics';
 import StudentSearch from './pages/StudentSearch';
+import LoginPage from './pages/Login';
+import RegisterPage from './pages/Register';
 import { Student, ScrapeConfig, DatabaseStats, LogEntry, PipelineStats } from './types';
 import { getStats, getLogs, getRecentStudents, runClassResult, clearDatabase, clearLogs } from './services/api';
+import { isAuthenticated, getStoredUser, logout as authLogout, type AuthUser } from './services/auth';
 import API_URL from './config/api';
 
 export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [loading, setLoading] = useState<boolean>(false);
+  
+  // Auth State
+  const [authed, setAuthed] = useState<boolean>(isAuthenticated());
+  const [showLogin, setShowLogin] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(getStoredUser());
 
   // Core Data States
   const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -60,6 +68,20 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+
+  // Handle successful login/register
+  const handleAuthSuccess = () => {
+    setAuthed(true);
+    setCurrentUser(getStoredUser());
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    await authLogout();
+    setAuthed(false);
+    setCurrentUser(null);
+    setShowLogin(true);
+  };
 
   // Load stats, logs & pipeline stats dynamically
   const fetchStatsAndLogs = useCallback(async () => {
@@ -168,6 +190,21 @@ export default function App() {
   const handleDownloadCsv = () => {
     window.location.href = `${API_URL}/api/export/csv?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`;
   };
+
+  // Show login/register page if not authenticated
+  if (!authed) {
+    return showLogin ? (
+      <LoginPage 
+        onLogin={handleAuthSuccess} 
+        onSwitchToRegister={() => setShowLogin(false)} 
+      />
+    ) : (
+      <RegisterPage 
+        onRegister={handleAuthSuccess} 
+        onSwitchToLogin={() => setShowLogin(true)} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-white font-sans flex flex-col transition-colors duration-200 print:bg-white">

@@ -2,8 +2,8 @@ import { db } from '../database.js';
 import { AdvancedAnalytics, SubjectAnalytics, Student } from '../../types.js';
 
 export class AnalyticsService {
-  public static async getAdvancedAnalytics(): Promise<AdvancedAnalytics> {
-    const allStudents = await db.getAllStudents();
+  public static async getAdvancedAnalytics(collegeId?: string): Promise<AdvancedAnalytics> {
+    const allStudents = await db.getAllStudents(collegeId);
     const validStudents = allStudents.filter(s => s && !s.is_missing);
 
     // Get system stats
@@ -92,8 +92,8 @@ export class AnalyticsService {
     };
   }
 
-  public static async getSubjectAnalytics(subjectQuery: string): Promise<SubjectAnalytics> {
-    const allStudents = (await db.getAllStudents()).filter(s => s && !s.is_missing);
+  public static async getSubjectAnalytics(subjectQuery: string, collegeId?: string): Promise<SubjectAnalytics> {
+    const allStudents = (await db.getAllStudents(collegeId)).filter(s => s && !s.is_missing);
     const query = subjectQuery.toLowerCase().trim();
 
     let subjectCode = '';
