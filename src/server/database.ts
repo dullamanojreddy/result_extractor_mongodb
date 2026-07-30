@@ -90,9 +90,9 @@ class DatabaseService {
       await this.mongoDb.collection('checkpoints').createIndex({ prefix: 1 }, { unique: true });
 
       this.mongoConnected = true;
-      this.addLog('info', `MongoDB connected successfully to ${this.mongoConfig.uri}/${this.mongoConfig.database}`);
+      this.addLog('info', `MongoDB connected successfully to database "${this.mongoConfig.database}"`);
 
-      return { success: true, message: `Connected to MongoDB database "${this.mongoConfig.database}" at ${this.mongoConfig.uri}` };
+      return { success: true, message: `Connected to MongoDB database "${this.mongoConfig.database}"` };
     } catch (err: any) {
       console.error("Full MongoDB Error:", err);
 
