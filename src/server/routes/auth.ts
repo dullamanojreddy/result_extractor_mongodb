@@ -1,11 +1,10 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { College } from '../models/College';
-import { User } from '../models/User';
-import { Session } from '../models/Session';
-import { AuthRequest, authMiddleware } from '../middleware/auth';
-import { adminOnly } from '../middleware/auth';
+import { College } from '../models/College.js';
+import { User } from '../models/User.js';
+import { Session } from '../models/Session.js';
+import { AuthRequest, authMiddleware, adminOnly } from '../middleware/auth.js';
 
 const router = Router();
 

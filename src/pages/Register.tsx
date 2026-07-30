@@ -115,21 +115,26 @@ export default function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPr
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">College Name</label>
               <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                <select
                   value={college}
                   onChange={e => setCollege(e.target.value)}
                   required
-                  list="colleges-list"
-                  placeholder="Vasavi College of Engineering"
-                  className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                <datalist id="colleges-list">
-                  {colleges.map(c => <option key={c} value={c} />)}
-                </datalist>
+                  className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none cursor-pointer"
+                >
+                  <option value="" className="text-slate-400">Select your college name</option>
+                  {colleges.map(c => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
-              <p className="text-xs text-slate-400 mt-1">Select existing or type a new college name</p>
             </div>
 
             <button
