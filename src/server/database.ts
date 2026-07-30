@@ -631,7 +631,7 @@ class DatabaseService {
             sgpaValues: {
               $push: {
                 $cond: [
-                  { $and: ['$sgpa', { $ne: '-' }] },
+                  { $and: [ { $ne: [ "$sgpa", null ] }, { $ne: [ "$sgpa", "-" ] } ] },
                   { $toDouble: '$sgpa' },
                   null
                 ]
@@ -640,7 +640,7 @@ class DatabaseService {
             cgpaValues: {
               $push: {
                 $cond: [
-                  { $and: ['$cgpa', { $ne: '-' }] },
+                  { $and: [ { $ne: [ "$cgpa", null ] }, { $ne: [ "$cgpa", "-" ] } ] },
                   { $toDouble: '$cgpa' },
                   null
                 ]
