@@ -112,7 +112,7 @@ class DatabaseService {
   public getMongoDBStatus() {
     return {
       connected: this.mongoConnected,
-      config: this.mongoConfig
+      database: this.mongoConfig.database
     };
   }
 

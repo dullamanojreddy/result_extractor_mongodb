@@ -18,7 +18,7 @@ import { AnalyticsService } from './src/server/services/AnalyticsService.js';
 import { RawHtmlStorage } from './src/server/services/RawHtmlStorage.js';
 import { Student } from './src/types.js';
 
-const PORT = 3000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 async function startServer() {
   // Initialize MongoDB connection and log result
@@ -471,7 +471,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`VCE Result Analyzer Server running on http://0.0.0.0:${PORT}`);
+    console.log(`VCE Result Analyzer Server running on port ${PORT}`);
   });
 }
 
