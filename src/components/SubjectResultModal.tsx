@@ -57,8 +57,8 @@ export const SubjectResultModal: React.FC<SubjectResultModalProps> = ({
   // Fetch real subject names from database when modal opens
   useEffect(() => {
     if (isOpen) {
-      fetch('/api/unique-subjects')
-        .then(res => res.json())
+      import { getUniqueSubjectNames } from '../services/api';
+      getUniqueSubjectNames()
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
             setAllSubjects(data);

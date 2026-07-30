@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Printer, AlertCircle, FileText, User, ArrowUpDown, X, ArrowDownAz, SlidersHorizontal } from 'lucide-react';
 import { Student } from '../types';
 import { FooterBar } from '../components/FooterBar';
+import { getStudents, deleteStudents } from '../services/api';
 
 export default function StudentSearch() {
   const [students, setStudents] = useState<Student[]>([]);

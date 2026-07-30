@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import AnalyticsPage from './pages/Analytics';
 import StudentSearch from './pages/StudentSearch';
 import { Student, ScrapeConfig, DatabaseStats, LogEntry, PipelineStats } from './types';
+import { getStats, getLogs, getRecentStudents, runClassResult, clearDatabase, clearLogs } from './services/api';
 
 export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -62,24 +63,15 @@ export default function App() {
   // Load stats, logs & pipeline stats dynamically
   const fetchStatsAndLogs = useCallback(async () => {
     try {
-      const [statsRes, logsRes, pipeRes] = await Promise.all([
-        fetch('/api/stats'),
-        fetch('/api/logs'),
-        fetch('/api/pipeline/stats')
+      const [statsData, logsData, pipeData] = await Promise.all([
+        getStats(),
+        getLogs(),
+        fetch('/api/pipeline/stats').then(res => res.ok ? res.json() : null)
       ]);
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
-      if (logsRes.ok) {
-        const logsData = await logsRes.json();
-        setLogs(logsData);
-      }
-      if (pipeRes.ok) {
-        const pipeData = await pipeRes.json();
-        setPipelineStats(pipeData);
-      }
+      setStats(statsData);
+      setLogs(logsData);
+      if (pipeData) setPipelineStats(pipeData);
     } catch (err) {
       console.error('Failed to load stats or logs', err);
     }
@@ -89,11 +81,8 @@ export default function App() {
   useEffect(() => {
     const fetchRecent = async () => {
       try {
-        const res = await fetch('/api/recent-students');
-        if (res.ok) {
-          const data = await res.json();
-          setRecentStudents(data);
-        }
+        const data = await getRecentStudents();
+        setRecentStudents(data);
       } catch (err) {
         console.error('Failed to load recent students', err);
       }
@@ -114,24 +103,14 @@ export default function App() {
 
   // Handlers
   const handleRunClassResult = async (runConfig: ScrapeConfig): Promise<Student[]> => {
-    const res = await fetch('/api/class-result', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prefix: runConfig.prefix,
-        start: runConfig.start_num,
-        end: runConfig.end_num,
-        portal_url: runConfig.portal_url,
-        delay: Math.round(runConfig.delay_seconds * 1000)
-      })
+    const data = await runClassResult({
+      prefix: runConfig.prefix,
+      start: runConfig.start_num,
+      end: runConfig.end_num,
+      portal_url: runConfig.portal_url,
+      delay: Math.round(runConfig.delay_seconds * 1000)
     });
 
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.error || 'Class result extraction failed');
-    }
-
-    const data = await res.json();
     setStudents(data.students || []);
     await fetchStatsAndLogs();
     return data.students || [];
@@ -143,24 +122,14 @@ export default function App() {
     reqStart?: string,
     reqEnd?: string
   ) => {
-    const res = await fetch('/api/subject-result', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        subject_name: subjectName,
-        prefix: reqPrefix || config.prefix,
-        start: reqStart || config.start_num,
-        end: reqEnd || config.end_num,
-        auto_fetch_missing: !!(reqPrefix && reqStart && reqEnd)
-      })
+    const data = await runSubjectResult({
+      subject_name: subjectName,
+      prefix: reqPrefix || config.prefix,
+      start: reqStart || config.start_num,
+      end: reqEnd || config.end_num,
+      auto_fetch_missing: !!(reqPrefix && reqStart && reqEnd)
     });
 
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.error || 'Subject search failed');
-    }
-
-    const data = await res.json();
     await fetchStatsAndLogs();
     return {
       matches: data.results || [],
@@ -172,11 +141,9 @@ export default function App() {
     if (!window.confirm('Are you sure you want to clear all student records from database?')) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/db/clear', { method: 'POST' });
-      if (res.ok) {
-        setStudents([]);
-        await fetchStatsAndLogs();
-      }
+      await clearDatabase();
+      setStudents([]);
+      await fetchStatsAndLogs();
     } catch (err) {
       console.error('Failed to clear DB', err);
     } finally {
@@ -186,7 +153,7 @@ export default function App() {
 
   const handleClearLogs = async () => {
     try {
-      await fetch('/api/logs/clear', { method: 'POST' });
+      await clearLogs();
       setLogs([]);
     } catch (err) {
       console.error('Failed to clear logs', err);

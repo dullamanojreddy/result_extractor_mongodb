@@ -8,6 +8,7 @@ console.log({
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 import { db } from './src/server/database.js';
 import { env } from './src/server/config/env.js';
@@ -29,6 +30,16 @@ async function startServer() {
   console.log('MongoDB Status:', status);
 
   const app = express();
+
+  app.use(cors({
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://result-extractor-mongodb.onrender.com',
+      /\.vercel\.app$/
+    ],
+    credentials: true
+  }));
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));

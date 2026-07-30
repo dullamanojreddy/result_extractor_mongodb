@@ -23,8 +23,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   // Lazy-load all database students on search query input to support full DB search from dashboard
   React.useEffect(() => {
     if (searchTerm.trim() && !hasLoadedDb) {
-      fetch('/api/students')
-        .then(res => res.json())
+      import { getStudents } from '../services/api';
+      getStudents()
         .then(data => {
           if (Array.isArray(data)) {
             setDbStudents(data);

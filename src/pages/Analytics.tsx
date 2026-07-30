@@ -10,8 +10,8 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/analytics/advanced')
-      .then(res => res.json())
+    import { getAdvancedAnalytics } from '../services/api';
+    getAdvancedAnalytics()
       .then(data => setAnalytics(data))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
