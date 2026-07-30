@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, RotateCcw, Database, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
-import { ScrapeConfig, MongoDBConfig } from '../types';
-import API_URL from '../config/api';
+import { X, Save, RotateCcw } from 'lucide-react';
+import { ScrapeConfig } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -16,60 +15,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   config,
   onSaveConfig
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'mongodb'>('general');
   const [formData, setFormData] = useState<ScrapeConfig>(config);
-
-  const [mongoForm, setMongoForm] = useState<MongoDBConfig>({
-    uri: '',
-    database: '',
-    enabled: false
-  });
-
-  const [testingMongo, setTestingMongo] = useState<boolean>(false);
-  const [mongoResult, setMongoResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      fetch(`${API_URL}/api/mongodb/status`)
-        .then(res => res.json())
-        .then(data => {
-          if (data?.config) {
-            setMongoForm(data.config);
-          }
-          if (data?.connected) {
-            setMongoResult({ success: true, message: `Connected to MongoDB (${data.config.database})` });
-          }
-        })
-        .catch(() => {});
+      setFormData(config);
     }
-  }, [isOpen]);
+  }, [isOpen, config]);
 
   if (!isOpen) return null;
 
-  const handleTestConnectMongoDB = async () => {
-    setTestingMongo(true);
-    setMongoResult(null);
-    try {
-      const res = await fetch(`${API_URL}/api/mongodb/connect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mongoForm)
-      });
-      const data = await res.json();
-      setMongoResult(data);
-    } catch (err: any) {
-      setMongoResult({ success: false, message: err.message || 'Failed to connect' });
-    } finally {
-      setTestingMongo(false);
-    }
-  };
-
   const handleSave = () => {
-    const updated = {
-      ...formData,
-      mongodb: mongoForm
-    };
-    onSaveConfig(updated);
+    onSaveConfig(formData);
     onClose();
   };
 
@@ -83,15 +40,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       headless: true,
       export_excel: true,
       export_csv: true,
-      retry_limit: 3,
-      mongodb: {
-        uri: '',
-        database: '',
-        enabled: false
-      }
+      retry_limit: 3
     };
     setFormData(defaultConfig);
-    setMongoForm(defaultConfig.mongodb!);
   };
 
   return (
@@ -110,35 +61,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-800/30 px-6 pt-2 gap-2">
-          <button
-            onClick={() => setActiveTab('general')}
-            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition ${
-              activeTab === 'general'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
-            }`}
-          >
-            General Defaults
-          </button>
-          <button
-            onClick={() => setActiveTab('mongodb')}
-            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
-              activeTab === 'mongodb'
-                ? 'border-cyan-600 text-cyan-600 dark:text-cyan-400'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
-            }`}
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>MongoDB Database</span>
-          </button>
-        </div>
-
         {/* Body */}
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          {activeTab === 'general' ? (
-            <>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Default Portal URL
@@ -250,76 +174,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <span>Enable Automatic CSV (.csv) Exports</span>
                 </label>
               </div>
-            </>
-          ) : (
-            <div className="space-y-4">
-              <div className="p-3 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/50 rounded-xl text-xs text-cyan-800 dark:text-cyan-300">
-                <p className="font-semibold mb-1">🍃 Local MongoDB Database Connection</p>
-                <p>
-                  Connect your local MongoDB instance (e.g., MongoDB Compass, Docker MongoDB).
-                  The app automatically creates collections (`students`, `logs`, `checkpoints`) upon connection.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  MongoDB URI
-                </label>
-                <input
-                  type="text"
-                  value={mongoForm.uri}
-                  onChange={e => setMongoForm({ ...mongoForm, uri: e.target.value })}
-                  placeholder="mongodb://localhost:27017"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Database Name
-                </label>
-                <input
-                  type="text"
-                  value={mongoForm.database}
-                  onChange={e => setMongoForm({ ...mongoForm, database: e.target.value })}
-                  placeholder="vce_results"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                />
-              </div>
-
-              {mongoResult && (
-                <div
-                  className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
-                    mongoResult.success
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-800 dark:text-emerald-300'
-                      : 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 text-rose-800 dark:text-rose-300'
-                  }`}
-                >
-                  {mongoResult.success ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <strong className="block">{mongoResult.success ? 'MongoDB Connected' : 'Connection Failed'}</strong>
-                    <span>{mongoResult.message}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-2 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={handleTestConnectMongoDB}
-                  disabled={testingMongo}
-                  className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-cyan-600/20"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${testingMongo ? 'animate-spin' : ''}`} />
-                  <span>{testingMongo ? 'Testing...' : 'Test & Save MongoDB Connection'}</span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}

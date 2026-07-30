@@ -97,8 +97,6 @@ export interface ScrapeConfig {
   export_excel: boolean;
   export_csv: boolean;
   retry_limit: number;
-  mysql?: MySQLConfig;
-  mongodb?: MongoDBConfig;
   // Pipeline Settings
   fetch_workers?: number;
   parse_workers?: number;
