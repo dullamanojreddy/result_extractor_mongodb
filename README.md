@@ -2,7 +2,7 @@
 
 ### Enterprise Result Extraction, Archiving & Academic Analytics Platform
 
-Automatically extracts academic results from legacy **ASP.NET WebForms** portals by handling session initialization, ViewState, EventValidation, and cookies behind the scenes. The system batch-discovers result records, archives raw HTML locally, stores structured data in MySQL, and provides a modern analytics dashboard with real-time monitoring.
+Automatically extracts academic results from legacy **ASP.NET WebForms** portals by handling session initialization, ViewState, EventValidation, and cookies behind the scenes. The system batch-discovers result records, archives raw HTML locally, stores data in Mongodb, and provides a modern analytics dashboard with real-time monitoring.
 
 <p align="center">
 
@@ -17,13 +17,6 @@ Automatically extracts academic results from legacy **ASP.NET WebForms** portals
 
 ---
 
-# Dashboard
-
-<p align="center">
-<img src="assets/dashboard.png" width="95%">
-</p>
-
----
 
 # Overview
 
@@ -51,40 +44,6 @@ The platform includes a modern React dashboard that provides live scraping progr
 - ⚡ Database caching to prevent duplicate requests
 - ♻️ Resume interrupted scraping sessions
 - 📋 Real-time logging terminal
-
----
-
-# Screenshots
-
-## Dashboard
-
-<p align="center">
-<img src="assets/dashboard.png" width="95%">
-</p>
-
----
-
-## Pipeline Monitor
-
-<p align="center">
-<img src="assets/pipeline.png" width="95%">
-</p>
-
----
-
-## Student Search
-
-<p align="center">
-<img src="assets/search.png" width="95%">
-</p>
-
----
-
-## Analytics
-
-<p align="center">
-<img src="assets/analytics.png" width="95%">
-</p>
 
 ---
 
@@ -269,10 +228,9 @@ MYSQL_DATABASE=result_analyzer
 
 ---
 
-# License
+👨‍💻 Developer
 
-This project is released under the **MIT License**.
-
+Dulla Manoj Reddy
 ---
 
 ## ⭐ If you found this project useful, consider giving it a star on GitHub!
