@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 console.log({
-  mongoUri: process.env.MONGO_URI,
   mongoDatabase: process.env.MONGO_DATABASE,
   useMongoDB: process.env.USE_MONGODB,
 });
