@@ -209,3 +209,13 @@ export async function connectMongo(config: { uri: string; database: string; enab
   }
   return response.json();
 }
+
+export async function getActivityLogs(): Promise<{ logs: any[]; active_users: any[] }> {
+  const response = await fetch(`${API_URL}/api/activity-logs`, {
+    headers: { ...getAuthHeaders() }
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch activity logs');
+  }
+  return response.json();
+}

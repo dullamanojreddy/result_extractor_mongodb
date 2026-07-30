@@ -30,6 +30,14 @@ export interface ScrapeProgress {
   processed: number;
   total: number;
   status: 'idle' | 'running' | 'completed' | 'paused' | 'error';
+  processed_count?: number;
+  total_count?: number;
+  found_count?: number;
+  missing_count?: number;
+  elapsed_seconds?: number;
+  remaining_seconds?: number;
+  start_ticket?: string;
+  end_ticket?: string;
 }
 
 export interface StudentSubject {

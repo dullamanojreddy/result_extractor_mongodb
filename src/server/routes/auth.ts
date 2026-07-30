@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { College } from '../models/College.js';
 import { User } from '../models/User.js';
 import { Session } from '../models/Session.js';
+import { ActivityLog } from '../models/ActivityLog.js';
 import { AuthRequest, authMiddleware, adminOnly } from '../middleware/auth.js';
 
 const router = Router();
@@ -46,7 +47,7 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
 
     // Create JWT
     const token = jwt.sign(
-      { userId: user._id.toString(), collegeId: user.collegeId, role: user.role },
+      { userId: user._id.toString(), collegeId: user.collegeId, role: user.role, name: user.name, email: user.email },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '8h' }
     );
@@ -57,6 +58,16 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
       ipAddress: req.ip || '',
       browser: req.headers['user-agent'] || '',
       loginTime: new Date()
+    });
+
+    // Log user activity
+    await ActivityLog.create({
+      userId: user._id.toString(),
+      userName: user.name,
+      email: user.email,
+      collegeId: user.collegeId,
+      activity: 'Registered new account',
+      ipAddress: req.ip || ''
     });
 
     return res.json({
@@ -101,7 +112,7 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
 
     // Create JWT
     const token = jwt.sign(
-      { userId: user._id.toString(), collegeId: user.collegeId, role: user.role },
+      { userId: user._id.toString(), collegeId: user.collegeId, role: user.role, name: user.name, email: user.email },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '8h' }
     );
@@ -112,6 +123,16 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
       ipAddress: req.ip || '',
       browser: req.headers['user-agent'] || '',
       loginTime: new Date()
+    });
+
+    // Log user activity
+    await ActivityLog.create({
+      userId: user._id.toString(),
+      userName: user.name,
+      email: user.email,
+      collegeId: user.collegeId,
+      activity: 'Logged in',
+      ipAddress: req.ip || ''
     });
 
     // Get college name
@@ -143,6 +164,17 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
       { logoutTime: new Date() },
       { sort: { loginTime: -1 } }
     );
+
+    if (req.user) {
+      await ActivityLog.create({
+        userId: req.user.userId,
+        userName: req.user.name,
+        email: req.user.email,
+        collegeId: req.user.collegeId,
+        activity: 'Logged out',
+        ipAddress: req.ip || ''
+      });
+    }
 
     return res.json({ message: 'Logged out successfully' });
   } catch (err: any) {

@@ -8,6 +8,7 @@ import { LogTerminal } from './components/LogTerminal';
 import { DocsViewerModal } from './components/DocsViewerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PipelineMonitorModal } from './components/PipelineMonitorModal';
+import { UserLogsModal } from './components/UserLogsModal';
 import Dashboard from './pages/Dashboard';
 import AnalyticsPage from './pages/Analytics';
 import StudentSearch from './pages/StudentSearch';
@@ -62,6 +63,7 @@ export default function App() {
   const [isPipelineOpen, setIsPipelineOpen] = useState<boolean>(false);
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
   const [isLogsOpen, setIsLogsOpen] = useState<boolean>(false);
+  const [isUserLogsOpen, setIsUserLogsOpen] = useState<boolean>(false);
   const [isDocsOpen, setIsDocsOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
@@ -259,6 +261,7 @@ export default function App() {
           onOpenStudentSearch={() => {}}
           onOpenAnalytics={() => {}}
           onOpenLogs={() => setIsLogsOpen(true)}
+          onOpenUserLogs={() => setIsUserLogsOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onLogout={handleLogout}
           role={currentUser?.role}
@@ -330,6 +333,11 @@ export default function App() {
         onClose={() => setIsLogsOpen(false)}
         logs={logs}
         onClearLogs={handleClearLogs}
+      />
+
+      <UserLogsModal
+        isOpen={isUserLogsOpen}
+        onClose={() => setIsUserLogsOpen(false)}
       />
 
       <DocsViewerModal

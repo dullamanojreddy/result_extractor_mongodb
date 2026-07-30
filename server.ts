@@ -22,6 +22,9 @@ import { authMiddleware, AuthRequest, adminOnly } from './src/server/middleware/
 import authRoutes from './src/server/routes/auth.js';
 import collegeRoutes from './src/server/routes/colleges.js';
 import mongoose from 'mongoose';
+import { ActivityLog } from './src/server/models/ActivityLog.js';
+import { Session } from './src/server/models/Session.js';
+import { User } from './src/server/models/User.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
@@ -75,29 +78,50 @@ async function startServer() {
   app.use('/api/auth', authRoutes);
   app.use('/api/colleges', collegeRoutes);
 
+  // Helper to log user activity
+  const logActivity = async (req: AuthRequest, activity: string) => {
+    if (!req.user) return;
+    try {
+      await ActivityLog.create({
+        userId: req.user.userId,
+        userName: req.user.name,
+        email: req.user.email,
+        collegeId: req.user.collegeId,
+        activity,
+        ipAddress: req.ip || ''
+      });
+    } catch (err) {
+      console.error('Error logging activity:', err);
+    }
+  };
+
   // Pipeline Routes (protected - college isolated)
   app.post('/api/pipeline/start', authMiddleware, (req: AuthRequest, res) => {
     try {
       const config = req.body;
       pipeline.startSession(config, req.user?.collegeId);
+      logActivity(req, `Started Ingestion batch range for ${config.start_num} to ${config.end_num}`);
       res.json({ success: true, message: 'Pipeline session started' });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }
   });
 
-  app.post('/api/pipeline/pause', authMiddleware, (_req, res) => {
+  app.post('/api/pipeline/pause', authMiddleware, (req: AuthRequest, res) => {
     pipeline.pauseSession();
+    logActivity(req, 'Paused Ingestion pipeline');
     res.json({ success: true, message: 'Pipeline paused' });
   });
 
-  app.post('/api/pipeline/resume', authMiddleware, (_req, res) => {
+  app.post('/api/pipeline/resume', authMiddleware, (req: AuthRequest, res) => {
     pipeline.resumeSession();
+    logActivity(req, 'Resumed Ingestion pipeline');
     res.json({ success: true, message: 'Pipeline resumed' });
   });
 
-  app.post('/api/pipeline/stop', authMiddleware, (_req, res) => {
+  app.post('/api/pipeline/stop', authMiddleware, (req: AuthRequest, res) => {
     pipeline.stopSession();
+    logActivity(req, 'Stopped Ingestion pipeline');
     res.json({ success: true, message: 'Pipeline stopped' });
   });
 
@@ -213,6 +237,7 @@ async function startServer() {
       }
 
       await db.clearCheckpoint();
+      logActivity(req, `Ingested Class Results for range ${prefix}${start} to ${prefix}${end}`);
       res.json({
         total: results.length,
         found: results.filter(s => s && !s.is_missing).length,
@@ -265,6 +290,7 @@ async function startServer() {
         matches = await db.getStudentsBySubject(subject_name, req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       }
 
+      logActivity(req, `Queried Subject Grades for "${subject_name}"`);
       res.json({
         subject_query: subject_name,
         match_count: matches.length,
@@ -276,6 +302,7 @@ async function startServer() {
     }
   });
 
+  // Export Excel (protected - college isolated)
   // Export Excel (protected - college isolated)
   app.get('/api/export/excel', authMiddleware, async (req: AuthRequest, res) => {
     try {
@@ -293,6 +320,7 @@ async function startServer() {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="Results_${prefix}${start}_${end}.xlsx"`);
       res.send(buffer);
+      logActivity(req, `Exported Excel for range ${prefix}${start} to ${prefix}${end}`);
       await db.addLog('info', `Excel export generated for ${students.length} students.`);
     } catch (err: any) {
       res.status(500).json({ error: 'Failed to generate Excel file' });
@@ -316,6 +344,7 @@ async function startServer() {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="Results_${prefix}${start}_${end}.csv"`);
       res.send(csvContent);
+      logActivity(req, `Exported CSV for range ${prefix}${start} to ${prefix}${end}`);
       await db.addLog('info', `CSV export generated for ${students.length} students.`);
     } catch (err: any) {
       res.status(500).json({ error: 'Failed to generate CSV file' });
@@ -337,6 +366,7 @@ async function startServer() {
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Content-Disposition', `attachment; filename="Results_${prefix}${start}_${end}.json"`);
       res.send(JSON.stringify(students, null, 2));
+      logActivity(req, `Exported JSON for range ${prefix}${start} to ${prefix}${end}`);
       await db.addLog('info', `JSON export generated for ${students.length} students.`);
     } catch (err: any) {
       res.status(500).json({ error: 'Failed to generate JSON file' });
@@ -414,14 +444,62 @@ async function startServer() {
   });
 
   // Clear Logs (protected - admin only)
-  app.post('/api/logs/clear', authMiddleware, adminOnly, async (_req, res) => {
+  app.post('/api/logs/clear', authMiddleware, adminOnly, async (req: AuthRequest, res) => {
     await db.clearLogs();
+    logActivity(req, 'Cleared system runtime logs');
     res.json({ message: 'Logs cleared' });
   });
 
+  // User Activity Logs Route (protected - college isolated)
+  app.get('/api/activity-logs', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const collegeId = req.user?.collegeId;
+      if (!collegeId) {
+        res.status(400).json({ error: 'College ID is required' });
+        return;
+      }
+
+      // Get activity logs sorted descending
+      const logs = await ActivityLog.find({ collegeId })
+        .sort({ timestamp: -1 })
+        .limit(100);
+
+      // Get active session user IDs
+      const activeSessions = await Session.find({ logoutTime: { $exists: false } });
+      const activeUserIds = new Set(activeSessions.map(s => s.userId));
+
+      // Get all users in this college
+      const users = await User.find({ collegeId });
+      const activeUsers = users.map(user => ({
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        is_live: activeUserIds.has(user._id.toString()),
+        last_login: user.lastLogin
+      }));
+
+      res.json({
+        logs: logs.map(log => ({
+          id: log._id,
+          userId: log.userId,
+          userName: log.userName,
+          email: log.email,
+          activity: log.activity,
+          ipAddress: log.ipAddress,
+          timestamp: log.timestamp
+        })),
+        active_users: activeUsers
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to fetch activity logs' });
+    }
+  });
+
   // Database Clear (protected - admin only)
-  app.post('/api/db/clear', authMiddleware, adminOnly, async (_req, res) => {
+  app.post('/api/db/clear', authMiddleware, adminOnly, async (req: AuthRequest, res) => {
     await db.clearDatabase();
+    logActivity(req, 'Cleared all students from database');
     res.json({ message: 'Database cleared' });
   });
 
@@ -450,6 +528,7 @@ async function startServer() {
         await db.mongoDb.collection('student_subjects').deleteMany({ hall_ticket: hallTicket });
         await db.mongoDb.collection('students').deleteOne({ hall_ticket: hallTicket });
 
+        logActivity(req, `Deleted student ${hallTicket}`);
         await db.addLog('info', `Deleted student record ${hallTicket} via DELETE route.`);
         res.json({ success: true, message: `Successfully deleted student ${hallTicket}.` });
       } else {
@@ -461,7 +540,7 @@ async function startServer() {
   });
 
   // Delete specific students (protected - admin only)
-  app.post('/api/students/delete', authMiddleware, adminOnly, async (req, res) => {
+  app.post('/api/students/delete', authMiddleware, adminOnly, async (req: AuthRequest, res) => {
     try {
       const { hall_tickets } = req.body;
       if (!Array.isArray(hall_tickets) || hall_tickets.length === 0) {
@@ -473,6 +552,7 @@ async function startServer() {
         await db.mongoDb.collection('student_subjects').deleteMany({ hall_ticket: { $in: hall_tickets } });
         await db.mongoDb.collection('students').deleteMany({ hall_ticket: { $in: hall_tickets } });
         
+        logActivity(req, `Deleted ${hall_tickets.length} student record(s)`);
         await db.addLog('info', `Deleted ${hall_tickets.length} student records.`);
         res.json({ success: true, message: `Successfully deleted ${hall_tickets.length} records.` });
       } else {

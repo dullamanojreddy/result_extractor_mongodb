@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trophy, AlertTriangle, BarChart3, TrendingUp, Users, Award, ShieldAlert } from 'lucide-react';
 import { AdvancedAnalytics } from '../types';
+import { getAdvancedAnalytics } from '../services/api';
 
 interface AdvancedAnalyticsModalProps {
   isOpen: boolean;
@@ -18,7 +19,6 @@ export const AdvancedAnalyticsModal: React.FC<AdvancedAnalyticsModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
-      import { getAdvancedAnalytics } from '../services/api';
       getAdvancedAnalytics()
         .then(data => setAnalytics(data))
         .catch(err => console.error(err))

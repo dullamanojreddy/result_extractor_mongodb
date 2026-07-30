@@ -9,7 +9,8 @@ import {
   FileText,
   Settings,
   HelpCircle,
-  LogOut
+  LogOut,
+  History
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -20,6 +21,7 @@ interface SidebarProps {
   onOpenStudentSearch: () => void;
   onOpenAnalytics: () => void;
   onOpenLogs: () => void;
+  onOpenUserLogs: () => void;
   onOpenSettings: () => void;
   onLogout?: () => void;
   role?: string;
@@ -36,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenStudentSearch,
   onOpenAnalytics,
   onOpenLogs,
+  onOpenUserLogs,
   onOpenSettings,
   onLogout,
   role,
@@ -142,7 +145,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
               >
                 <FileText className="w-4 h-4 text-slate-400" />
-                <span>Logs</span>
+                <span>System Logs</span>
+              </button>
+
+              <button
+                onClick={() => handleNav('user-logs', onOpenUserLogs)}
+                className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
+              >
+                <History className="w-4 h-4 text-slate-400" />
+                <span>User Logs</span>
               </button>
             </>
           )}

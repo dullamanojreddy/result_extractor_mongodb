@@ -72,7 +72,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
     const timer = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       setProgress(prev => {
-        if (prev && prev.processed_count >= total) {
+        if (prev && (prev.processed_count ?? 0) >= total) {
           return {
             ...prev,
             elapsed_seconds: elapsed,
@@ -80,7 +80,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
           };
         }
 
-        const count = prev ? Math.min(prev.processed_count + 1, total) : 1;
+        const count = prev ? Math.min((prev.processed_count ?? 0) + 1, total) : 1;
         const currentHt = `${config.prefix}${String(startNum + count - 1).padStart(padLen, '0')}`;
         
         // Pure calculation of missing and found records to avoid React strict-mode double-run state mutation bugs
@@ -97,6 +97,8 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
         return {
           status: count >= total ? 'completed' : 'running',
           current_hall_ticket: currentHt,
+          processed: count,
+          total: total,
           processed_count: count,
           total_count: total,
           found_count: simulatedFound,
@@ -117,6 +119,8 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
       setProgress({
         status: 'completed',
         current_hall_ticket: `${config.prefix}${config.end_num}`,
+        processed: results.length,
+        total: results.length,
         processed_count: results.length,
         total_count: results.length,
         found_count: results.filter(s => s && !s.is_missing).length,

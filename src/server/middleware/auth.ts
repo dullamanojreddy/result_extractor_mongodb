@@ -6,6 +6,8 @@ export interface AuthRequest extends Request {
     userId: string;
     collegeId: string;
     role: string;
+    name?: string;
+    email?: string;
   };
 }
 
@@ -31,6 +33,8 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       userId: string;
       collegeId: string;
       role: string;
+      name?: string;
+      email?: string;
     };
 
     req.user = decoded;
