@@ -7,13 +7,15 @@ interface SettingsModalProps {
   onClose: () => void;
   config: ScrapeConfig;
   onSaveConfig: (newConfig: ScrapeConfig) => void;
+  role?: string;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   config,
-  onSaveConfig
+  onSaveConfig,
+  role
 }) => {
   const [formData, setFormData] = useState<ScrapeConfig>(config);
 
@@ -143,37 +145,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-2 pt-2">
-                <label className="flex items-center space-x-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.headless}
-                    onChange={e => setFormData({ ...formData, headless: e.target.checked })}
-                    className="rounded text-rose-600 focus:ring-rose-500"
-                  />
-                  <span>Run Browser Automation in Headless Mode</span>
-                </label>
+              {role === 'admin' && (
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <label className="flex items-center space-x-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.headless}
+                      onChange={e => setFormData({ ...formData, headless: e.target.checked })}
+                      className="rounded text-rose-600 focus:ring-rose-500"
+                    />
+                    <span>Run Browser Automation in Headless Mode</span>
+                  </label>
 
-                <label className="flex items-center space-x-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.export_excel}
-                    onChange={e => setFormData({ ...formData, export_excel: e.target.checked })}
-                    className="rounded text-rose-600 focus:ring-rose-500"
-                  />
-                  <span>Enable Automatic Excel (.xlsx) Exports</span>
-                </label>
+                  <label className="flex items-center space-x-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.export_excel}
+                      onChange={e => setFormData({ ...formData, export_excel: e.target.checked })}
+                      className="rounded text-rose-600 focus:ring-rose-500"
+                    />
+                    <span>Enable Automatic Excel (.xlsx) Exports</span>
+                  </label>
 
-                <label className="flex items-center space-x-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.export_csv}
-                    onChange={e => setFormData({ ...formData, export_csv: e.target.checked })}
-                    className="rounded text-rose-600 focus:ring-rose-500"
-                  />
-                  <span>Enable Automatic CSV (.csv) Exports</span>
-                </label>
-              </div>
+                  <label className="flex items-center space-x-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.export_csv}
+                      onChange={e => setFormData({ ...formData, export_csv: e.target.checked })}
+                      className="rounded text-rose-600 focus:ring-rose-500"
+                    />
+                    <span>Enable Automatic CSV (.csv) Exports</span>
+                  </label>
+                </div>
+              )}
         </div>
 
         {/* Footer */}

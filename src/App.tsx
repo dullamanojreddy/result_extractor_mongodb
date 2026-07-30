@@ -15,7 +15,7 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import { Student, ScrapeConfig, DatabaseStats, LogEntry, PipelineStats } from './types';
 import { getStats, getLogs, getRecentStudents, runClassResult, runSubjectResult, clearDatabase, clearLogs } from './services/api';
-import { isAuthenticated, getStoredUser, logout as authLogout, type AuthUser } from './services/auth';
+import { isAuthenticated, getStoredUser, logout as authLogout, type AuthUser, getAuthHeaders } from './services/auth';
 import API_URL from './config/api';
 
 export default function App() {
@@ -77,19 +77,20 @@ export default function App() {
   // Handle successful login/register
   const handleAuthSuccess = () => {
     setAuthed(true);
-    setCurrentUser(getStoredUser());
-    // Show onboarding popup on each new login (session-based)
-    if (!sessionStorage.getItem('onboarding')) {
+    const user = getStoredUser();
+    setCurrentUser(user);
+    // Show onboarding popup on each new login (session-based) for non-admins
+    if (user?.role !== 'admin' && !sessionStorage.getItem('onboarding')) {
       setShowOnboarding(true);
     }
   };
 
   // Trigger onboarding modal on load if authenticated and session key is not set
   useEffect(() => {
-    if (authed && !sessionStorage.getItem('onboarding')) {
+    if (authed && currentUser?.role !== 'admin' && !sessionStorage.getItem('onboarding')) {
       setShowOnboarding(true);
     }
-  }, [authed]);
+  }, [authed, currentUser]);
 
   // Secret analytics unlock via search
   const handleSearchChange = (value: string) => {
@@ -115,20 +116,29 @@ export default function App() {
 
   // Load stats, logs & pipeline stats dynamically
   const fetchStatsAndLogs = useCallback(async () => {
+    if (!authed) return;
     try {
       const [statsData, logsData, pipeData] = await Promise.all([
-        getStats(),
-        getLogs(),
-        fetch(`${API_URL}/api/pipeline/stats`).then(res => res.ok ? res.json() : null)
+        getStats().catch(err => {
+          console.error('Failed to fetch stats:', err);
+          return null;
+        }),
+        getLogs().catch(() => {
+          // logs fail for non-admins due to backend auth middleware
+          return [];
+        }),
+        fetch(`${API_URL}/api/pipeline/stats`, {
+          headers: { ...getAuthHeaders() }
+        }).then(res => res.ok ? res.json() : null).catch(() => null)
       ]);
 
-      setStats(statsData);
-      setLogs(logsData);
+      if (statsData) setStats(statsData);
+      if (logsData) setLogs(logsData);
       if (pipeData) setPipelineStats(pipeData);
     } catch (err) {
       console.error('Failed to load stats or logs', err);
     }
-  }, []);
+  }, [authed]);
 
   // Load recent students on mount
   useEffect(() => {
@@ -250,6 +260,7 @@ export default function App() {
           onOpenAnalytics={() => {}}
           onOpenLogs={() => setIsLogsOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onLogout={handleLogout}
           role={currentUser?.role}
           showAnalytics={showAnalytics}
           collegeName={currentUser?.collegeName}
@@ -331,6 +342,7 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
         config={config}
         onSaveConfig={setConfig}
+        role={currentUser?.role}
       />
 
       {/* Onboarding Popup */}
@@ -342,7 +354,7 @@ export default function App() {
             </div>
             <div className="p-6 space-y-3 text-sm text-slate-700 dark:text-slate-300">
               <p>This platform does not store your result portal URL.</p>
-              <p>You must enter after each login:</p>
+              <p>You must enter these in **Settings** after each login:</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
                 <li>Result URL</li>
                 <li>Hall Ticket Prefix</li>

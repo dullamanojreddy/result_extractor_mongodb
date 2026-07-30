@@ -30,7 +30,9 @@ export async function getStudentByHallTicket(hallTicket: string) {
 }
 
 export async function getLogs() {
-  const response = await fetch(`${API_URL}/api/logs`);
+  const response = await fetch(`${API_URL}/api/logs`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch logs');
   }
@@ -38,7 +40,10 @@ export async function getLogs() {
 }
 
 export async function clearLogs() {
-  const response = await fetch(`${API_URL}/api/logs/clear`, { method: 'POST' });
+  const response = await fetch(`${API_URL}/api/logs/clear`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to clear logs');
   }
@@ -46,7 +51,10 @@ export async function clearLogs() {
 }
 
 export async function clearDatabase() {
-  const response = await fetch(`${API_URL}/api/db/clear`, { method: 'POST' });
+  const response = await fetch(`${API_URL}/api/db/clear`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to clear database');
   }
@@ -54,7 +62,9 @@ export async function clearDatabase() {
 }
 
 export async function getRecentStudents() {
-  const response = await fetch(`${API_URL}/api/recent-students`);
+  const response = await fetch(`${API_URL}/api/recent-students`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch recent students');
   }
@@ -62,7 +72,9 @@ export async function getRecentStudents() {
 }
 
 export async function getUniqueSubjectNames() {
-  const response = await fetch(`${API_URL}/api/unique-subjects`);
+  const response = await fetch(`${API_URL}/api/unique-subjects`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch subject names');
   }
@@ -81,7 +93,9 @@ export async function searchStudentsBySubject(query: string) {
 
 export async function getSubjectFilteredResults(params: { subject: string; prefix: string; start: string; end: string }) {
   const query = new URLSearchParams(params as any).toString();
-  const response = await fetch(`${API_URL}/api/subject-filtered?${query}`);
+  const response = await fetch(`${API_URL}/api/subject-filtered?${query}`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch filtered results');
   }
@@ -103,7 +117,7 @@ export async function runClassResult(config: any) {
 export async function runSubjectResult(config: { subject_name: string; prefix?: string; start?: string; end?: string; auto_fetch_missing?: boolean }) {
   const response = await fetch(`${API_URL}/api/subject-result`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(config)
   });
   if (!response.ok) {
@@ -123,7 +137,9 @@ export async function getAdvancedAnalytics() {
 }
 
 export async function getSubjectAnalytics(query: string) {
-  const response = await fetch(`${API_URL}/api/analytics/subject?q=${encodeURIComponent(query)}`);
+  const response = await fetch(`${API_URL}/api/analytics/subject?q=${encodeURIComponent(query)}`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch subject analytics');
   }
@@ -131,7 +147,9 @@ export async function getSubjectAnalytics(query: string) {
 }
 
 export async function exportExcel(prefix: string, start: string, end: string) {
-  const response = await fetch(`${API_URL}/api/export/excel?prefix=${prefix}&start=${start}&end=${end}`);
+  const response = await fetch(`${API_URL}/api/export/excel?prefix=${prefix}&start=${start}&end=${end}`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to export Excel');
   }
@@ -139,7 +157,9 @@ export async function exportExcel(prefix: string, start: string, end: string) {
 }
 
 export async function exportCsv(prefix: string, start: string, end: string) {
-  const response = await fetch(`${API_URL}/api/export/csv?prefix=${prefix}&start=${start}&end=${end}`);
+  const response = await fetch(`${API_URL}/api/export/csv?prefix=${prefix}&start=${start}&end=${end}`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to export CSV');
   }
@@ -147,7 +167,9 @@ export async function exportCsv(prefix: string, start: string, end: string) {
 }
 
 export async function exportJson(prefix: string, start: string, end: string) {
-  const response = await fetch(`${API_URL}/api/export/json?prefix=${prefix}&start=${start}&end=${end}`);
+  const response = await fetch(`${API_URL}/api/export/json?prefix=${prefix}&start=${start}&end=${end}`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to export JSON');
   }
@@ -157,7 +179,7 @@ export async function exportJson(prefix: string, start: string, end: string) {
 export async function deleteStudents(hall_tickets: string[]) {
   const response = await fetch(`${API_URL}/api/students/delete`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ hall_tickets })
   });
   if (!response.ok) {
@@ -167,7 +189,9 @@ export async function deleteStudents(hall_tickets: string[]) {
 }
 
 export async function getMongoStatus() {
-  const response = await fetch(`${API_URL}/api/mongodb/status`);
+  const response = await fetch(`${API_URL}/api/mongodb/status`, {
+    headers: { ...getAuthHeaders() }
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch MongoDB status');
   }
@@ -177,7 +201,7 @@ export async function getMongoStatus() {
 export async function connectMongo(config: { uri: string; database: string; enabled: boolean }) {
   const response = await fetch(`${API_URL}/api/mongodb/connect`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(config)
   });
   if (!response.ok) {

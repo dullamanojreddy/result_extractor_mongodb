@@ -8,7 +8,8 @@ import {
   BarChart3,
   FileText,
   Settings,
-  HelpCircle
+  HelpCircle,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -20,6 +21,7 @@ interface SidebarProps {
   onOpenAnalytics: () => void;
   onOpenLogs: () => void;
   onOpenSettings: () => void;
+  onLogout?: () => void;
   role?: string;
   showAnalytics?: boolean;
   collegeName?: string;
@@ -35,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenAnalytics,
   onOpenLogs,
   onOpenSettings,
+  onLogout,
   role,
   showAnalytics,
   collegeName,
@@ -152,8 +155,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Settings</span>
           </button>
 
-
-
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer mt-2"
+            >
+              <LogOut className="w-4 h-4 text-rose-500" />
+              <span>Logout</span>
+            </button>
+          )}
         </nav>
       </div>
 
