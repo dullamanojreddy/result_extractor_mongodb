@@ -46,8 +46,8 @@ export class AnalyticsService {
 
     validStudents.forEach(s => {
       s.subjects?.forEach(sub => {
-        const g = sub.grade.toUpperCase();
-        gradeDistribution[g] = (gradeDistribution[g] || 0) + 1;
+        const g = (sub.grade || '').toUpperCase();
+        if (g) gradeDistribution[g] = (gradeDistribution[g] || 0) + 1;
       });
     });
 
@@ -113,10 +113,10 @@ export class AnalyticsService {
           matches.push({
             hall_ticket: s.hall_ticket,
             name: s.name,
-            grade: sub.grade
+            grade: sub.grade || ''
           });
 
-          const g = sub.grade.toUpperCase();
+          const g = (sub.grade || '').toUpperCase();
           gradeCounts[g] = (gradeCounts[g] || 0) + 1;
         }
       });

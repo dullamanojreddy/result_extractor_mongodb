@@ -1,6 +1,6 @@
 import { db } from '../database.js';
-import { RawHtmlStorage } from './RawHtmlStorage.ts';
-import { ParserEngine } from './ParserEngine.ts';
+import { RawHtmlStorage } from './RawHtmlStorage.js';
+import { ParserEngine } from './ParserEngine.js';
 import { Student, PipelineStats, ScrapeConfig } from '../../types.js';
 
 interface FetchJob {

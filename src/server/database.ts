@@ -45,8 +45,8 @@ class DatabaseService {
     try {
       // Create MongoDB client
       this.mongoClient = new MongoClient(this.mongoConfig.uri, {
-        serverSelectionTimeoutMS: 3000,
-        connectTimeoutMS: 3000
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000
       });
 
       // Test connection
