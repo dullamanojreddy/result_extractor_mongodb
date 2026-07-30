@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-              {stats?.driver === 'mysql' ? 'MySQL Database & Result Management System' : 'Local Database & Result Management System'}
+              {stats?.driver === 'mongodb' ? 'MongoDB Database & Result Management System' : 'Local Database & Result Management System'}
             </p>
           </div>
         </div>
@@ -70,10 +70,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right Tools & Theme */}
         <div className="flex items-center space-x-2">
           {/* Status Indicator */}
-          {stats?.driver === 'mysql' ? (
+          {stats?.driver === 'mongodb' ? (
             <div className="hidden md:flex items-center space-x-2 px-2.5 py-1 rounded-full text-xs bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 mr-2">
               <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
-              <span className="font-semibold">MySQL Live</span>
+              <span className="font-semibold">MongoDB Live</span>
             </div>
           ) : (
             <div className="hidden md:flex items-center space-x-2 px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 mr-2">

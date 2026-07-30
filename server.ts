@@ -1,11 +1,9 @@
 import dotenv from "dotenv";
 dotenv.config();
 console.log({
-  host: process.env.MYSQL_HOST,
-  port: process.env.MYSQL_PORT,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
+  mongoUri: process.env.MONGO_URI,
+  mongoDatabase: process.env.MONGO_DATABASE,
+  useMongoDB: process.env.USE_MONGODB,
 });
 
 import express from 'express';
@@ -13,6 +11,7 @@ import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { db } from './src/server/database.js';
+import { env } from './src/server/config/env.js';
 import { fetchStudentResult } from './src/server/scraper.js';
 import { generateExcelBuffer, generateCsvString } from './src/server/exporter.js';
 import { pipeline } from './src/server/services/ScraperPipeline.js';
@@ -23,12 +22,12 @@ import { Student } from './src/types.js';
 const PORT = 3000;
 
 async function startServer() {
-  // Initialize MySQL connection and log result
-  const mysqlResult = await db.initMySQL();
-  console.log('MySQL Init Result:', mysqlResult);
+  // Initialize MongoDB connection and log result
+  const mongoResult = await db.initMongoDB();
+  console.log('MongoDB Init Result:', mongoResult);
 
-  const status = db.getMySQLStatus();
-  console.log('MySQL Status:', status);
+  const status = db.getMongoDBStatus();
+  console.log('MongoDB Status:', status);
 
   const app = express();
 
@@ -339,10 +338,12 @@ async function startServer() {
   // Recent Students (last 5 fetched records)
   app.get('/api/recent-students', async (_req, res) => {
     try {
-      if (db.mysqlPool && db.mysqlConnected) {
-        const [rows] = await db.mysqlPool.query<any[]>(
-          'SELECT hall_ticket FROM students WHERE is_missing = 0 ORDER BY created_at DESC LIMIT 5'
-        );
+      if (db.mongoDb && db.mongoConnected) {
+        const rows = await db.mongoDb.collection('students')
+          .find({ is_missing: 0 })
+          .sort({ created_at: -1 })
+          .limit(5)
+          .toArray();
         const recent = [];
         for (const r of rows) {
           const s = await db.getStudentByHallTicket(r.hall_ticket);
@@ -398,15 +399,9 @@ async function startServer() {
         return;
       }
 
-      if (db.mysqlPool && db.mysqlConnected) {
-        await db.mysqlPool.query(
-          'DELETE FROM student_subjects WHERE hall_ticket IN (?)',
-          [hall_tickets]
-        );
-        await db.mysqlPool.query(
-          'DELETE FROM students WHERE hall_ticket IN (?)',
-          [hall_tickets]
-        );
+      if (db.mongoDb && db.mongoConnected) {
+        await db.mongoDb.collection('student_subjects').deleteMany({ hall_ticket: { $in: hall_tickets } });
+        await db.mongoDb.collection('students').deleteMany({ hall_ticket: { $in: hall_tickets } });
         
         await db.addLog('info', `Deleted ${hall_tickets.length} student records.`);
         res.json({ success: true, message: `Successfully deleted ${hall_tickets.length} records.` });
@@ -418,26 +413,23 @@ async function startServer() {
     }
   });
 
-  // MySQL Status
-  app.get('/api/mysql/status', (_req, res) => {
-    res.json(db.getMySQLStatus());
+  // MongoDB Status
+  app.get('/api/mongodb/status', (_req, res) => {
+    res.json(db.getMongoDBStatus());
   });
 
-  // Connect to MySQL
-  app.post('/api/mysql/connect', async (req, res) => {
+  // Connect to MongoDB
+  app.post('/api/mongodb/connect', async (req, res) => {
     try {
-      const { host, port, user, password, database, enabled } = req.body;
-      const result = await db.initMySQL({
-        host: host || 'localhost',
-        port: parseInt(port, 10) || 3306,
-        user: user || 'root',
-        password: password || '',
+      const { uri, database, enabled } = req.body;
+      const result = await db.initMongoDB({
+        uri: uri || 'mongodb://localhost:27017',
         database: database || 'vce_results',
         enabled: enabled !== undefined ? enabled : true
       });
       res.json(result);
     } catch (err: any) {
-      res.status(500).json({ success: false, message: err.message || 'Failed to connect to MySQL' });
+      res.status(500).json({ success: false, message: err.message || 'Failed to connect to MongoDB' });
     }
   });
 

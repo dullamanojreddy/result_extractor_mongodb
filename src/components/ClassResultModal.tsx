@@ -164,7 +164,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                High-throughput automated result scraper & MySQL database sync
+                High-throughput automated result scraper & MongoDB database sync
               </p>
             </div>
           </div>
@@ -342,7 +342,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <Database className="w-4 h-4 text-[#7C3AED]" />
-                    <span>Target Database: <strong className="text-slate-900 dark:text-white">Local MySQL Database</strong></span>
+                    <span>Target Database: <strong className="text-slate-900 dark:text-white">Local MongoDB Database</strong></span>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-5 text-xs font-medium">
@@ -503,7 +503,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
                     Batch Extraction Completed Successfully!
                   </h4>
                   <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                    Processed {extractedStudents.length} hall tickets directly into local MySQL database.
+                    Processed {extractedStudents.length} hall tickets directly into local MongoDB database.
                   </p>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import mysql from 'mysql2/promise';
-import { Student, Subject, MandatoryRequirement, LogEntry, DatabaseStats, MySQLConfig } from '../types.js';
+import { MongoClient, Db, Collection, Document } from 'mongodb';
+import { Student, Subject, MandatoryRequirement, LogEntry, DatabaseStats, MongoDBConfig } from '../types.js';
 import { env } from './config/env.js';
 
 interface DBData {
@@ -15,124 +15,90 @@ interface DBData {
 }
 
 class DatabaseService {
-  public mysqlPool: mysql.Pool | null = null;
-  public mysqlConnected: boolean = false;
-  private mysqlConfig: MySQLConfig = {
-    host: env.mysqlHost,
-    port: env.mysqlPort,
-    user: env.mysqlUser,
-    password: env.mysqlPassword,
-    database: env.mysqlDatabase,
-    enabled: env.useMysql
+  public mongoClient: MongoClient | null = null;
+  public mongoDb: Db | null = null;
+  public mongoConnected: boolean = false;
+  private mongoConfig: MongoDBConfig = {
+    uri: env.mongoUri,
+    database: env.mongoDatabase,
+    enabled: env.useMongoDB
   };
 
   constructor() {
-    // No local data loading - MySQL is the single source of truth
+    // No local data loading - MongoDB is the single source of truth
   }
 
-  // Initialize MySQL Connection & Schema
-  public async initMySQL(customConfig?: MySQLConfig): Promise<{ success: boolean; message: string }> {
+  // Initialize MongoDB Connection & Collections
+  public async initMongoDB(customConfig?: MongoDBConfig): Promise<{ success: boolean; message: string }> {
     if (customConfig) {
-      this.mysqlConfig = { ...customConfig };
+      this.mongoConfig = { ...customConfig };
     }
 
-    if (this.mysqlPool) {
+    if (this.mongoClient) {
       try {
-        await this.mysqlPool.end();
+        await this.mongoClient.close();
       } catch (_) {}
-      this.mysqlPool = null;
+      this.mongoClient = null;
+      this.mongoDb = null;
     }
 
     try {
-      // Create connection pool
-      this.mysqlPool = mysql.createPool({
-        host: this.mysqlConfig.host,
-        port: this.mysqlConfig.port,
-        user: this.mysqlConfig.user,
-        password: this.mysqlConfig.password || '',
-        database: this.mysqlConfig.database,
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0,
-        connectTimeout: 3000
+      // Create MongoDB client
+      this.mongoClient = new MongoClient(this.mongoConfig.uri, {
+        serverSelectionTimeoutMS: 3000,
+        connectTimeoutMS: 3000
       });
 
       // Test connection
-      const connection = await this.mysqlPool.getConnection();
-      connection.release();
+      await this.mongoClient.connect();
+      this.mongoDb = this.mongoClient.db(this.mongoConfig.database);
 
-      // Auto-Create Schema in MySQL if not present
-      await this.mysqlPool.query(`
-        CREATE TABLE IF NOT EXISTS students (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          hall_ticket VARCHAR(50) NOT NULL UNIQUE,
-          name VARCHAR(255) DEFAULT '-',
-          father_name VARCHAR(255) DEFAULT '-',
-          course VARCHAR(255) DEFAULT '-',
-          exam VARCHAR(255) DEFAULT '-',
-          sgpa VARCHAR(20) DEFAULT '-',
-          cgpa VARCHAR(20) DEFAULT '-',
-          is_missing TINYINT(1) DEFAULT 0,
-          subjects JSON DEFAULT NULL,
-          mandatory_requirements JSON DEFAULT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          INDEX idx_hall_ticket (hall_ticket)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
+      // Create collections with indexes if they don't exist
+      const collections = await this.mongoDb.listCollections().toArray();
+      const collectionNames = collections.map(c => c.name);
 
-      // Drop and recreate logs table to ensure correct schema
-      await this.mysqlPool.query('DROP TABLE IF EXISTS logs');
-      
-      await this.mysqlPool.query(`
-        CREATE TABLE logs (
-          id VARCHAR(50) PRIMARY KEY,
-          timestamp VARCHAR(50) NOT NULL,
-          type VARCHAR(20) NOT NULL,
-          message TEXT NOT NULL,
-          hall_ticket VARCHAR(50) DEFAULT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
+      // Students collection
+      if (!collectionNames.includes('students')) {
+        await this.mongoDb.createCollection('students');
+      }
+      await this.mongoDb.collection('students').createIndex({ hall_ticket: 1 }, { unique: true });
+      await this.mongoDb.collection('students').createIndex({ is_missing: 1 });
+      await this.mongoDb.collection('students').createIndex({ sgpa: 1 });
+      await this.mongoDb.collection('students').createIndex({ cgpa: 1 });
 
-      await this.mysqlPool.query(`
-        CREATE TABLE IF NOT EXISTS checkpoints (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          last_hall_ticket VARCHAR(50) NOT NULL,
-          end_hall_ticket VARCHAR(50) NOT NULL,
-          prefix VARCHAR(50) NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          UNIQUE KEY unique_prefix (prefix)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
+      // Student subjects collection
+      if (!collectionNames.includes('student_subjects')) {
+        await this.mongoDb.createCollection('student_subjects');
+      }
+      await this.mongoDb.collection('student_subjects').createIndex({ hall_ticket: 1 });
+      await this.mongoDb.collection('student_subjects').createIndex({ subject_code: 1 });
+      await this.mongoDb.collection('student_subjects').createIndex({ subject_name: 1 });
+      await this.mongoDb.collection('student_subjects').createIndex({ grade: 1 });
 
-      // Create student_subjects table for subject-wise results
-      await this.mysqlPool.query(`
-        CREATE TABLE IF NOT EXISTS student_subjects (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          hall_ticket VARCHAR(50) NOT NULL,
-          subject_code VARCHAR(50) NOT NULL,
-          subject_name VARCHAR(255) NOT NULL,
-          credits DECIMAL(3,1) DEFAULT 0,
-          grade VARCHAR(10) DEFAULT '',
-          semester VARCHAR(20) DEFAULT '',
-          year VARCHAR(20) DEFAULT '',
-          INDEX idx_hall_ticket (hall_ticket),
-          INDEX idx_subject_code (subject_code),
-          INDEX idx_subject_name (subject_name)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
+      // Logs collection
+      if (!collectionNames.includes('logs')) {
+        await this.mongoDb.createCollection('logs');
+      }
+      await this.mongoDb.collection('logs').createIndex({ type: 1 });
+      await this.mongoDb.collection('logs').createIndex({ hall_ticket: 1 });
+      await this.mongoDb.collection('logs').createIndex({ created_at: -1 });
 
-      this.mysqlConnected = true;
-      this.addLog('info', `MySQL connected successfully to ${this.mysqlConfig.host}:${this.mysqlConfig.port}/${this.mysqlConfig.database}`);
+      // Checkpoints collection
+      if (!collectionNames.includes('checkpoints')) {
+        await this.mongoDb.createCollection('checkpoints');
+      }
+      await this.mongoDb.collection('checkpoints').createIndex({ prefix: 1 }, { unique: true });
 
-      return { success: true, message: `Connected to MySQL database "${this.mysqlConfig.database}" at ${this.mysqlConfig.host}:${this.mysqlConfig.port}` };
+      this.mongoConnected = true;
+      this.addLog('info', `MongoDB connected successfully to ${this.mongoConfig.uri}/${this.mongoConfig.database}`);
+
+      return { success: true, message: `Connected to MongoDB database "${this.mongoConfig.database}" at ${this.mongoConfig.uri}` };
     } catch (err: any) {
-      console.error("Full MySQL Error:", err);
+      console.error("Full MongoDB Error:", err);
 
-      this.mysqlConnected = false;
+      this.mongoConnected = false;
 
-      const msg = `MySQL connection unavailable (${err.code}: ${err.message})`;
+      const msg = `MongoDB connection unavailable (${err.code || 'UNKNOWN'}: ${err.message})`;
       console.log(msg);
 
       return {
@@ -142,20 +108,22 @@ class DatabaseService {
     }
   }
 
-  // Get MySQL Configuration & Connection Status
-  public getMySQLStatus() {
+  // Get MongoDB Configuration & Connection Status
+  public getMongoDBStatus() {
     return {
-      connected: this.mysqlConnected,
-      config: this.mysqlConfig
+      connected: this.mongoConnected,
+      config: this.mongoConfig
     };
   }
 
-  // Helper to fetch subjects from student_subjects table
+  // Helper to fetch subjects from student_subjects collection
   private async fetchSubjectsForHallTicket(ht: string): Promise<Subject[]> {
-    if (!this.mysqlPool || !this.mysqlConnected) return [];
+    if (!this.mongoDb || !this.mongoConnected) return [];
     try {
-      const [rows] = await this.mysqlPool.query<any[]>('SELECT * FROM student_subjects WHERE hall_ticket = ?', [ht]);
-      return rows.map((s: any) => ({
+      const docs = await this.mongoDb.collection('student_subjects')
+        .find({ hall_ticket: ht })
+        .toArray();
+      return docs.map((s: any) => ({
         subject_code: s.subject_code,
         subject_name: s.subject_name,
         credits: s.credits,
@@ -169,110 +137,95 @@ class DatabaseService {
     }
   }
 
-  // Student CRUD - All operations now use MySQL directly
+  // Student CRUD - All operations now use MongoDB directly
 
   public async getStudentByHallTicket(ht: string): Promise<Student | null> {
-    if (!this.mysqlPool || !this.mysqlConnected) return null;
+    if (!this.mongoDb || !this.mongoConnected) return null;
     
     try {
-      const [rows] = await this.mysqlPool.query<any[]>('SELECT * FROM students WHERE hall_ticket = ?', [ht]);
-      if (!rows || rows.length === 0) return null;
+      const doc = await this.mongoDb.collection('students').findOne({ hall_ticket: ht });
+      if (!doc) return null;
       
-      const row = rows[0];
-      
-      // Try to get subjects from student_subjects table first, fall back to JSON column
+      // Try to get subjects from student_subjects collection first, fall back to embedded array
       let subjects: Subject[] = await this.fetchSubjectsForHallTicket(ht);
       
-      // If no subjects in student_subjects table, try the JSON column
-      if (subjects.length === 0 && row.subjects) {
-        const parsed = typeof row.subjects === 'string' ? JSON.parse(row.subjects) : row.subjects;
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          subjects = parsed;
+      // If no subjects in student_subjects collection, try the embedded array
+      if (subjects.length === 0 && doc.subjects) {
+        if (Array.isArray(doc.subjects) && doc.subjects.length > 0) {
+          subjects = doc.subjects as unknown as Subject[];
         }
       }
       
       return {
-        id: row.id,
-        hall_ticket: row.hall_ticket,
-        name: row.name,
-        father_name: row.father_name,
-        course: row.course,
-        exam: row.exam,
-        sgpa: row.sgpa,
-        cgpa: row.cgpa,
-        is_missing: Boolean(row.is_missing),
-        created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+        id: doc.id || undefined,
+        hall_ticket: doc.hall_ticket,
+        name: doc.name,
+        father_name: doc.father_name,
+        course: doc.course,
+        exam: doc.exam,
+        sgpa: doc.sgpa,
+        cgpa: doc.cgpa,
+        is_missing: Boolean(doc.is_missing),
+        created_at: doc.created_at ? new Date(doc.created_at).toISOString() : new Date().toISOString(),
         subjects: subjects,
-        mandatory_requirements: typeof row.mandatory_requirements === 'string' ? JSON.parse(row.mandatory_requirements) : (row.mandatory_requirements || [])
+        mandatory_requirements: doc.mandatory_requirements || []
       };
     } catch (err) {
-      console.error(`Error fetching student ${ht} from MySQL`, err);
+      console.error(`Error fetching student ${ht} from MongoDB`, err);
       return null;
     }
   }
 
   public async saveStudentAsync(student: Student): Promise<Student> {
-    if (!this.mysqlPool || !this.mysqlConnected) {
-      throw new Error('MySQL not connected');
+    if (!this.mongoDb || !this.mongoConnected) {
+      throw new Error('MongoDB not connected');
     }
 
     try {
       // Save main student record
-      await this.mysqlPool.query(
-        `INSERT INTO students (hall_ticket, name, father_name, course, exam, sgpa, cgpa, is_missing, subjects, mandatory_requirements, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-         ON DUPLICATE KEY UPDATE
-           name = VALUES(name),
-           father_name = VALUES(father_name),
-           course = VALUES(course),
-           exam = VALUES(exam),
-           sgpa = VALUES(sgpa),
-           cgpa = VALUES(cgpa),
-           is_missing = VALUES(is_missing),
-           subjects = VALUES(subjects),
-           mandatory_requirements = VALUES(mandatory_requirements),
-           created_at = NOW()`,
-        [
-          student.hall_ticket,
-          student.name,
-          student.father_name,
-          student.course,
-          student.exam,
-          student.sgpa,
-          student.cgpa,
-          student.is_missing ? 1 : 0,
-          JSON.stringify(student.subjects || []),
-          JSON.stringify(student.mandatory_requirements || [])
-        ]
+      const studentDoc = {
+        hall_ticket: student.hall_ticket,
+        name: student.name,
+        father_name: student.father_name,
+        course: student.course,
+        exam: student.exam,
+        sgpa: student.sgpa,
+        cgpa: student.cgpa,
+        is_missing: student.is_missing ? 1 : 0,
+        subjects: student.subjects || [],
+        mandatory_requirements: student.mandatory_requirements || [],
+        created_at: new Date().toISOString()
+      };
+
+      await this.mongoDb.collection('students').updateOne(
+        { hall_ticket: student.hall_ticket },
+        { $set: studentDoc },
+        { upsert: true }
       );
 
-      // Save subjects to student_subjects table
+      // Save subjects to student_subjects collection
       if (student.subjects && student.subjects.length > 0) {
         // Delete old subjects first to avoid duplicates
-        await this.mysqlPool.query('DELETE FROM student_subjects WHERE hall_ticket = ?', [student.hall_ticket]);
+        await this.mongoDb.collection('student_subjects').deleteMany({ hall_ticket: student.hall_ticket });
         
         // Insert new subjects
-        for (const sub of student.subjects) {
-          await this.mysqlPool.query(
-            `INSERT INTO student_subjects (hall_ticket, subject_code, subject_name, credits, grade, semester, year) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [
-              student.hall_ticket,
-              sub.subject_code,
-              sub.subject_name,
-              sub.credits,
-              sub.grade,
-              sub.semester,
-              sub.year
-            ]
-          );
-        }
+        const subjectDocs = student.subjects.map(sub => ({
+          hall_ticket: student.hall_ticket,
+          subject_code: sub.subject_code,
+          subject_name: sub.subject_name,
+          credits: sub.credits,
+          grade: sub.grade,
+          semester: sub.semester,
+          year: sub.year
+        }));
+        
+        await this.mongoDb.collection('student_subjects').insertMany(subjectDocs);
       }
 
-      // Fetch the saved/updated record (with subjects from student_subjects table)
+      // Fetch the saved/updated record (with subjects from student_subjects collection)
       return await this.getStudentByHallTicket(student.hall_ticket) || student;
     } catch (err) {
-      console.error(`Error persisting student ${student.hall_ticket} to MySQL`, err);
+      console.error(`Error persisting student ${student.hall_ticket} to MongoDB`, err);
       throw err;
     }
   }
@@ -283,7 +236,7 @@ class DatabaseService {
   }
 
   public async getStudentsByRange(prefix: string, startNum: string, endNum: string): Promise<Student[]> {
-    if (!this.mysqlPool || !this.mysqlConnected) return [];
+    if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
       const start = parseInt(startNum, 10);
@@ -303,23 +256,28 @@ class DatabaseService {
       
       return results;
     } catch (err) {
-      console.error('Error fetching students by range from MySQL', err);
+      console.error('Error fetching students by range from MongoDB', err);
       return [];
     }
   }
 
   public async getAllStudents(): Promise<Student[]> {
-    if (!this.mysqlPool || !this.mysqlConnected) return [];
+    if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
-      const [students] = await this.mysqlPool.query<any[]>('SELECT * FROM students ORDER BY hall_ticket ASC');
+      const students = await this.mongoDb.collection('students')
+        .find({})
+        .sort({ hall_ticket: 1 })
+        .toArray();
       
       // Fetch all subjects
-      const [subjects] = await this.mysqlPool.query<any[]>('SELECT * FROM student_subjects');
+      const subjects = await this.mongoDb.collection('student_subjects')
+        .find({})
+        .toArray();
       
       // Map subjects to their respective students
       return students.map((student: any) => ({
-        id: student.id,
+        id: student._id?.toString(),
         hall_ticket: student.hall_ticket,
         name: student.name,
         father_name: student.father_name,
@@ -337,10 +295,10 @@ class DatabaseService {
           year: s.year,
           grade: s.grade
         })),
-        mandatory_requirements: typeof student.mandatory_requirements === 'string' ? JSON.parse(student.mandatory_requirements) : (student.mandatory_requirements || [])
+        mandatory_requirements: student.mandatory_requirements || []
       }));
     } catch (err) {
-      console.error('Error fetching all students from MySQL', err);
+      console.error('Error fetching all students from MongoDB', err);
       return [];
     }
   }
@@ -353,24 +311,29 @@ class DatabaseService {
     subject_name: string;
     credits: number | string;
   }>> {
-    if (!this.mysqlPool || !this.mysqlConnected) return [];
+    if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
       // 1. Try to find an EXACT match first (prevents Theory from showing Labs)
-      const exactQuery = `
-        SELECT s.hall_ticket, s.name, ss.subject_code, ss.subject_name, ss.credits, ss.grade
-        FROM students s
-        JOIN student_subjects ss ON s.hall_ticket = ss.hall_ticket
-        WHERE ss.subject_name = ?
-        ORDER BY s.hall_ticket ASC
-      `;
-      const [exactRows] = await this.mysqlPool.query<any[]>(exactQuery, [subjectNameQuery]);
+      const exactDocs = await this.mongoDb.collection('student_subjects')
+        .aggregate([
+          { $match: { subject_name: subjectNameQuery } },
+          { $lookup: {
+              from: 'students',
+              localField: 'hall_ticket',
+              foreignField: 'hall_ticket',
+              as: 'student'
+          }},
+          { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } },
+          { $sort: { hall_ticket: 1 } }
+        ])
+        .toArray();
       
       // 2. If exact match found, return it
-      if (exactRows.length > 0) {
-        return exactRows.map((row: any) => ({
+      if (exactDocs.length > 0) {
+        return exactDocs.map((row: any) => ({
           hall_ticket: row.hall_ticket,
-          name: row.name,
+          name: row.student?.name || '-',
           grade: row.grade || 'PASSED',
           subject_code: row.subject_code,
           subject_name: row.subject_name,
@@ -378,26 +341,36 @@ class DatabaseService {
         }));
       }
 
-      // 3. Fallback: If no exact match, use LIKE (e.g., searching for "lab")
-      const [partialRows] = await this.mysqlPool.query<any[]>(
-        `SELECT ss.hall_ticket, s.name, ss.subject_code, ss.subject_name, ss.credits, ss.grade
-         FROM student_subjects ss
-         JOIN students s ON s.hall_ticket = ss.hall_ticket
-         WHERE ss.subject_name LIKE ? OR ss.subject_code LIKE ?
-         ORDER BY ss.hall_ticket ASC`,
-        [`%${subjectNameQuery}%`, `%${subjectNameQuery}%`]
-      );
+      // 3. Fallback: If no exact match, use regex (e.g., searching for "lab")
+      const partialDocs = await this.mongoDb.collection('student_subjects')
+        .aggregate([
+          { $match: { 
+            $or: [
+              { subject_name: { $regex: subjectNameQuery, $options: 'i' } },
+              { subject_code: { $regex: subjectNameQuery, $options: 'i' } }
+            ]
+          }},
+          { $lookup: {
+              from: 'students',
+              localField: 'hall_ticket',
+              foreignField: 'hall_ticket',
+              as: 'student'
+          }},
+          { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } },
+          { $sort: { hall_ticket: 1 } }
+        ])
+        .toArray();
       
-      return partialRows.map((row: any) => ({
+      return partialDocs.map((row: any) => ({
         hall_ticket: row.hall_ticket,
-        name: row.name,
+        name: row.student?.name || '-',
         grade: row.grade || 'PASSED',
         subject_code: row.subject_code,
         subject_name: row.subject_name,
         credits: row.credits
       }));
     } catch (err) {
-      console.error('Error fetching students by subject from MySQL', err);
+      console.error('Error fetching students by subject from MongoDB', err);
       return [];
     }
   }
@@ -411,48 +384,65 @@ class DatabaseService {
     subject_name: string;
     credits: number | string;
   }>> {
-    if (!this.mysqlPool || !this.mysqlConnected) return [];
+    if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
       const startNum = parseInt(start, 10) || 1;
       const endNum = parseInt(end, 10) || 999;
+      const prefixLen = prefix.length;
 
-      const [rows] = await this.mysqlPool.query<any[]>(
-        `SELECT s.hall_ticket, s.name, ss.subject_code, ss.subject_name, ss.credits, ss.grade
-         FROM students s
-         JOIN student_subjects ss ON s.hall_ticket = ss.hall_ticket
-         WHERE ss.subject_name = ? 
-         AND s.hall_ticket LIKE ?
-         AND CAST(SUBSTRING(s.hall_ticket, ? + 1) AS UNSIGNED) BETWEEN ? AND ?
-         ORDER BY CAST(SUBSTRING(s.hall_ticket, ? + 1) AS UNSIGNED) ASC`,
-        [subjectName, `${prefix}%`, prefix.length, startNum, endNum, prefix.length]
-      );
-      
-      return rows.map((row: any) => ({
+      // Build a regex pattern for hall_ticket range filtering
+      // We need to extract the numeric part after the prefix and filter by range
+      const docs = await this.mongoDb.collection('student_subjects')
+        .aggregate([
+          { $match: { subject_name: subjectName } },
+          { $lookup: {
+              from: 'students',
+              localField: 'hall_ticket',
+              foreignField: 'hall_ticket',
+              as: 'student'
+          }},
+          { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } },
+          { $match: { hall_ticket: { $regex: `^${prefix}` } } },
+          { $sort: { hall_ticket: 1 } }
+        ])
+        .toArray();
+
+      // Filter by numeric range in application layer
+      const filtered = docs.filter((doc: any) => {
+        const numericPart = doc.hall_ticket.substring(prefixLen);
+        const num = parseInt(numericPart, 10);
+        return !isNaN(num) && num >= startNum && num <= endNum;
+      });
+
+      return filtered.map((row: any) => ({
         hall_ticket: row.hall_ticket,
-        name: row.name,
+        name: row.student?.name || '-',
         grade: row.grade || 'PASSED',
         subject_code: row.subject_code,
         subject_name: row.subject_name,
         credits: row.credits
       }));
     } catch (err) {
-      console.error('Error fetching filtered subject results from MySQL', err);
+      console.error('Error fetching filtered subject results from MongoDB', err);
       return [];
     }
   }
 
   // Get unique subject names for suggestions
   public async getUniqueSubjectNames(): Promise<string[]> {
-    if (!this.mysqlPool || !this.mysqlConnected) return [];
+    if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
-      const [rows] = await this.mysqlPool.query<any[]>(
-        'SELECT DISTINCT subject_name FROM student_subjects ORDER BY subject_name ASC'
-      );
-      return rows.map((r: any) => r.subject_name);
+      const result = await this.mongoDb.collection('student_subjects')
+        .aggregate([
+          { $group: { _id: '$subject_name' } },
+          { $sort: { _id: 1 } }
+        ])
+        .toArray();
+      return result.map((r: any) => r._id);
     } catch (err) {
-      console.error('Error fetching unique subject names from MySQL', err);
+      console.error('Error fetching unique subject names from MongoDB', err);
       return [];
     }
   }
@@ -467,15 +457,19 @@ class DatabaseService {
       hall_ticket
     };
 
-    // Save to MySQL log table if connected
-    if (this.mysqlPool && this.mysqlConnected) {
+    // Save to MongoDB log collection if connected
+    if (this.mongoDb && this.mongoConnected) {
       try {
-        await this.mysqlPool.query(
-          'INSERT INTO logs (id, timestamp, type, message, hall_ticket) VALUES (?, ?, ?, ?, ?)',
-          [entry.id, entry.timestamp, entry.type, entry.message, entry.hall_ticket || null]
-        );
+        await this.mongoDb.collection('logs').insertOne({
+          id: entry.id,
+          timestamp: entry.timestamp,
+          type: entry.type,
+          message: entry.message,
+          hall_ticket: entry.hall_ticket || null,
+          created_at: new Date().toISOString()
+        });
       } catch (err) {
-        console.error('Error saving log to MySQL', err);
+        console.error('Error saving log to MongoDB', err);
       }
     }
 
@@ -483,11 +477,15 @@ class DatabaseService {
   }
 
   public async getLogs(): Promise<LogEntry[]> {
-    if (!this.mysqlPool || !this.mysqlConnected) return [];
+    if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
-      const [rows] = await this.mysqlPool.query<any[]>('SELECT * FROM logs ORDER BY created_at DESC LIMIT 500');
-      return rows.map(row => ({
+      const docs = await this.mongoDb.collection('logs')
+        .find({})
+        .sort({ created_at: -1 })
+        .limit(500)
+        .toArray();
+      return docs.map(row => ({
         id: row.id,
         timestamp: row.timestamp,
         type: row.type,
@@ -495,75 +493,77 @@ class DatabaseService {
         hall_ticket: row.hall_ticket
       }));
     } catch (err) {
-      console.error('Error fetching logs from MySQL', err);
+      console.error('Error fetching logs from MongoDB', err);
       return [];
     }
   }
 
   public async clearLogs(): Promise<void> {
-    if (this.mysqlPool && this.mysqlConnected) {
+    if (this.mongoDb && this.mongoConnected) {
       try {
-        await this.mysqlPool.query('TRUNCATE TABLE logs');
+        await this.mongoDb.collection('logs').deleteMany({});
       } catch (err) {
-        console.error('Error clearing logs from MySQL', err);
+        console.error('Error clearing logs from MongoDB', err);
       }
     }
   }
 
   // Checkpoints
   public async saveCheckpoint(last_hall_ticket: string, end_hall_ticket: string, prefix: string): Promise<void> {
-    if (this.mysqlPool && this.mysqlConnected) {
+    if (this.mongoDb && this.mongoConnected) {
       try {
-        await this.mysqlPool.query(
-          `INSERT INTO checkpoints (last_hall_ticket, end_hall_ticket, prefix) 
-           VALUES (?, ?, ?) 
-           ON DUPLICATE KEY UPDATE 
-           last_hall_ticket = VALUES(last_hall_ticket), 
-           end_hall_ticket = VALUES(end_hall_ticket), 
-           updated_at = CURRENT_TIMESTAMP`,
-          [last_hall_ticket, end_hall_ticket, prefix]
+        await this.mongoDb.collection('checkpoints').updateOne(
+          { prefix },
+          { 
+            $set: { 
+              last_hall_ticket, 
+              end_hall_ticket, 
+              prefix,
+              updated_at: new Date().toISOString()
+            } 
+          },
+          { upsert: true }
         );
       } catch (err) {
-        console.error('Error saving checkpoint to MySQL', err);
+        console.error('Error saving checkpoint to MongoDB', err);
       }
     }
   }
 
   public async getCheckpoint(): Promise<{ last_hall_ticket: string; end_hall_ticket: string; prefix: string } | null> {
-    if (!this.mysqlPool || !this.mysqlConnected) return null;
+    if (!this.mongoDb || !this.mongoConnected) return null;
     
     try {
-      const [rows] = await this.mysqlPool.query<any[]>('SELECT * FROM checkpoints LIMIT 1');
-      if (!rows || rows.length === 0) return null;
+      const doc = await this.mongoDb.collection('checkpoints').findOne({});
+      if (!doc) return null;
       
-      const row = rows[0];
       return {
-        last_hall_ticket: row.last_hall_ticket,
-        end_hall_ticket: row.end_hall_ticket,
-        prefix: row.prefix
+        last_hall_ticket: doc.last_hall_ticket,
+        end_hall_ticket: doc.end_hall_ticket,
+        prefix: doc.prefix
       };
     } catch (err) {
-      console.error('Error fetching checkpoint from MySQL', err);
+      console.error('Error fetching checkpoint from MongoDB', err);
       return null;
     }
   }
 
   public async clearCheckpoint(): Promise<void> {
-    if (this.mysqlPool && this.mysqlConnected) {
+    if (this.mongoDb && this.mongoConnected) {
       try {
-        await this.mysqlPool.query('DELETE FROM checkpoints');
+        await this.mongoDb.collection('checkpoints').deleteMany({});
       } catch (err) {
-        console.error('Error clearing checkpoint from MySQL', err);
+        console.error('Error clearing checkpoint from MongoDB', err);
       }
     }
   }
 
   // Stats
   public async getStats(): Promise<DatabaseStats> {
-    if (!this.mysqlPool || !this.mysqlConnected) {
+    if (!this.mongoDb || !this.mongoConnected) {
       return {
-        driver: 'mysql',
-        mysql_connected: false,
+        driver: 'mongodb',
+        mongodb_connected: false,
         total_students: 0,
         found_students: 0,
         missing_students: 0,
@@ -580,7 +580,7 @@ class DatabaseService {
     }
 
     try {
-      const [students] = await this.mysqlPool.query<any[]>('SELECT * FROM students');
+      const students = await this.mongoDb.collection('students').find({}).toArray();
       const found = students.filter(s => !s.is_missing);
       const missing = students.filter(s => s.is_missing);
 
@@ -611,10 +611,9 @@ class DatabaseService {
         }
       }
 
-      // Get actual subject count from student_subjects table
+      // Get actual subject count from student_subjects collection
       try {
-        const [subjRows] = await this.mysqlPool.query<any[]>('SELECT COUNT(*) as count FROM student_subjects');
-        totalSubjects = subjRows[0]?.count || 0;
+        totalSubjects = await this.mongoDb.collection('student_subjects').countDocuments();
       } catch (_) {}
 
       const sortedBySgpa = [...found]
@@ -629,11 +628,9 @@ class DatabaseService {
         // Check for failed subjects from student_subjects
         let hasFailedSubj = false;
         try {
-          const [subjRows] = await this.mysqlPool.query<any[]>(
-            "SELECT COUNT(*) as count FROM student_subjects WHERE hall_ticket = ? AND grade = 'F'",
-            [s.hall_ticket]
-          );
-          hasFailedSubj = subjRows[0]?.count > 0;
+          const count = await this.mongoDb.collection('student_subjects')
+            .countDocuments({ hall_ticket: s.hall_ticket, grade: 'F' });
+          hasFailedSubj = count > 0;
         } catch (_) {}
         
         if (hasFailedSubj || isNaN(sgpaVal) || sgpaVal < 5.0) {
@@ -646,8 +643,8 @@ class DatabaseService {
       const passPercentage = found.length > 0 ? parseFloat(((passCount / found.length) * 100).toFixed(1)) : 0;
 
       return {
-        driver: 'mysql',
-        mysql_connected: true,
+        driver: 'mongodb',
+        mongodb_connected: true,
         total_students: students.length,
         found_students: found.length,
         missing_students: missing.length,
@@ -667,19 +664,19 @@ class DatabaseService {
         }))
       };
     } catch (err) {
-      console.error('Error fetching stats from MySQL', err);
+      console.error('Error fetching stats from MongoDB', err);
       throw err;
     }
   }
 
   // DB Clear
   public async clearDatabase(): Promise<void> {
-    if (this.mysqlPool && this.mysqlConnected) {
+    if (this.mongoDb && this.mongoConnected) {
       try {
-        await this.mysqlPool.query('TRUNCATE TABLE students');
-        await this.mysqlPool.query('TRUNCATE TABLE logs');
-        await this.mysqlPool.query('TRUNCATE TABLE checkpoints');
-        await this.mysqlPool.query('TRUNCATE TABLE student_subjects');
+        await this.mongoDb.collection('students').deleteMany({});
+        await this.mongoDb.collection('logs').deleteMany({});
+        await this.mongoDb.collection('checkpoints').deleteMany({});
+        await this.mongoDb.collection('student_subjects').deleteMany({});
       } catch (err) {
         console.error('Error clearing database', err);
         throw err;
@@ -687,7 +684,7 @@ class DatabaseService {
     }
   }
 
-  // Mock data seeding removed - MySQL should only contain real scraped data
+  // Mock data seeding removed - MongoDB should only contain real scraped data
 }
 
 export const db = new DatabaseService();

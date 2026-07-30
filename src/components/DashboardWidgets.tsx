@@ -228,9 +228,9 @@ export const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
               <span className="text-slate-500 dark:text-slate-400 font-medium">Database</span>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-purple-700 dark:text-purple-300">
-                  {dbStats?.mysql_connected ? 'MySQL Connected' : 'Not Connected'}
+                  {dbStats?.mongodb_connected ? 'MongoDB Connected' : 'Not Connected'}
                 </span>
-                <CheckCircle2 className={`w-4 h-4 ${dbStats?.mysql_connected ? 'text-emerald-500 fill-emerald-100 dark:fill-emerald-950' : 'text-rose-500 fill-rose-100 dark:fill-rose-950'}`} />
+                <CheckCircle2 className={`w-4 h-4 ${dbStats?.mongodb_connected ? 'text-emerald-500 fill-emerald-100 dark:fill-emerald-950' : 'text-rose-500 fill-rose-100 dark:fill-rose-950'}`} />
               </div>
             </div>
 

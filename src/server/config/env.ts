@@ -11,6 +11,11 @@ export const env = {
   mysqlPassword: process.env.MYSQL_PASSWORD || "",
   mysqlDatabase: process.env.MYSQL_DATABASE || "",
 
+  useMongoDB: process.env.USE_MONGODB === "true",
+
+  mongoUri: process.env.MONGO_URI || "mongodb://localhost:27017",
+  mongoDatabase: process.env.MONGO_DATABASE || "vce_results",
+
   port: Number(process.env.PORT) || 3000,
 
   defaultPrefix: process.env.DEFAULT_PREFIX || "",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, RotateCcw, Database, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
-import { ScrapeConfig, MySQLConfig } from '../types';
+import { ScrapeConfig, MongoDBConfig } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,31 +15,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   config,
   onSaveConfig
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'mysql'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'mongodb'>('general');
   const [formData, setFormData] = useState<ScrapeConfig>(config);
 
-  const [mysqlForm, setMysqlForm] = useState<MySQLConfig>({
-    host: '',
-    port: 3306,
-    user: '',
-    password: '',
+  const [mongoForm, setMongoForm] = useState<MongoDBConfig>({
+    uri: '',
     database: '',
     enabled: false
   });
 
-  const [testingMysql, setTestingMysql] = useState<boolean>(false);
-  const [mysqlResult, setMysqlResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [testingMongo, setTestingMongo] = useState<boolean>(false);
+  const [mongoResult, setMongoResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      fetch('/api/mysql/status')
+      fetch('/api/mongodb/status')
         .then(res => res.json())
         .then(data => {
           if (data?.config) {
-            setMysqlForm(data.config);
+            setMongoForm(data.config);
           }
           if (data?.connected) {
-            setMysqlResult({ success: true, message: `Connected to MySQL (${data.config.database})` });
+            setMongoResult({ success: true, message: `Connected to MongoDB (${data.config.database})` });
           }
         })
         .catch(() => {});
@@ -48,28 +45,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleTestConnectMySQL = async () => {
-    setTestingMysql(true);
-    setMysqlResult(null);
+  const handleTestConnectMongoDB = async () => {
+    setTestingMongo(true);
+    setMongoResult(null);
     try {
-      const res = await fetch('/api/mysql/connect', {
+      const res = await fetch('/api/mongodb/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mysqlForm)
+        body: JSON.stringify(mongoForm)
       });
       const data = await res.json();
-      setMysqlResult(data);
+      setMongoResult(data);
     } catch (err: any) {
-      setMysqlResult({ success: false, message: err.message || 'Failed to connect' });
+      setMongoResult({ success: false, message: err.message || 'Failed to connect' });
     } finally {
-      setTestingMysql(false);
+      setTestingMongo(false);
     }
   };
 
   const handleSave = () => {
     const updated = {
       ...formData,
-      mysql: mysqlForm
+      mongodb: mongoForm
     };
     onSaveConfig(updated);
     onClose();
@@ -86,17 +83,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       export_excel: true,
       export_csv: true,
       retry_limit: 3,
-      mysql: {
-        host: '',
-        port: 3306,
-        user: '',
-        password: '',
+      mongodb: {
+        uri: '',
         database: '',
         enabled: false
       }
     };
     setFormData(defaultConfig);
-    setMysqlForm(defaultConfig.mysql!);
+    setMongoForm(defaultConfig.mongodb!);
   };
 
   return (
@@ -128,15 +122,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             General Defaults
           </button>
           <button
-            onClick={() => setActiveTab('mysql')}
+            onClick={() => setActiveTab('mongodb')}
             className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
-              activeTab === 'mysql'
+              activeTab === 'mongodb'
                 ? 'border-cyan-600 text-cyan-600 dark:text-cyan-400'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            <span>MySQL Local Database</span>
+            <span>MongoDB Database</span>
           </button>
         </div>
 
@@ -259,65 +253,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           ) : (
             <div className="space-y-4">
               <div className="p-3 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/50 rounded-xl text-xs text-cyan-800 dark:text-cyan-300">
-                <p className="font-semibold mb-1">🐬 Local MySQL Database Connection</p>
+                <p className="font-semibold mb-1">🍃 Local MongoDB Database Connection</p>
                 <p>
-                  Connect your local MySQL instance (e.g., MySQL Workbench, XAMPP, Docker MySQL).
-                  The app automatically creates tables (`students`, `logs`, `checkpoints`) upon connection.
+                  Connect your local MongoDB instance (e.g., MongoDB Compass, Docker MongoDB).
+                  The app automatically creates collections (`students`, `logs`, `checkpoints`) upon connection.
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    MySQL Host
-                  </label>
-                  <input
-                    type="text"
-                    value={mysqlForm.host}
-                    onChange={e => setMysqlForm({ ...mysqlForm, host: e.target.value })}
-                    placeholder="localhost or 127.0.0.1"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Port
-                  </label>
-                  <input
-                    type="number"
-                    value={mysqlForm.port}
-                    onChange={e => setMysqlForm({ ...mysqlForm, port: parseInt(e.target.value, 10) || 3306 })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Username
-                  </label>
-                  <input
-                    type="text"
-                    value={mysqlForm.user}
-                    onChange={e => setMysqlForm({ ...mysqlForm, user: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    value={mysqlForm.password || ''}
-                    onChange={e => setMysqlForm({ ...mysqlForm, password: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  MongoDB URI
+                </label>
+                <input
+                  type="text"
+                  value={mongoForm.uri}
+                  onChange={e => setMongoForm({ ...mongoForm, uri: e.target.value })}
+                  placeholder="mongodb://localhost:27017"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                />
               </div>
 
               <div>
@@ -326,29 +279,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={mysqlForm.database}
-                  onChange={e => setMysqlForm({ ...mysqlForm, database: e.target.value })}
+                  value={mongoForm.database}
+                  onChange={e => setMongoForm({ ...mongoForm, database: e.target.value })}
                   placeholder="vce_results"
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
                 />
               </div>
 
-              {mysqlResult && (
+              {mongoResult && (
                 <div
                   className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
-                    mysqlResult.success
+                    mongoResult.success
                       ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-800 dark:text-emerald-300'
                       : 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 text-rose-800 dark:text-rose-300'
                   }`}
                 >
-                  {mysqlResult.success ? (
+                  {mongoResult.success ? (
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   ) : (
                     <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                   )}
                   <div>
-                    <strong className="block">{mysqlResult.success ? 'MySQL Connected' : 'Connection Failed'}</strong>
-                    <span>{mysqlResult.message}</span>
+                    <strong className="block">{mongoResult.success ? 'MongoDB Connected' : 'Connection Failed'}</strong>
+                    <span>{mongoResult.message}</span>
                   </div>
                 </div>
               )}
@@ -356,21 +309,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="pt-2 flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={handleTestConnectMySQL}
-                  disabled={testingMysql}
+                  onClick={handleTestConnectMongoDB}
+                  disabled={testingMongo}
                   className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-cyan-600/20"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${testingMysql ? 'animate-spin' : ''}`} />
-                  <span>{testingMysql ? 'Testing...' : 'Test & Save MySQL Connection'}</span>
+                  <RefreshCw className={`w-3.5 h-3.5 ${testingMongo ? 'animate-spin' : ''}`} />
+                  <span>{testingMongo ? 'Testing...' : 'Test & Save MongoDB Connection'}</span>
                 </button>
-
-                <a
-                  href="/database/schema.sql"
-                  download="vce_mysql_schema.sql"
-                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  📄 Download MySQL schema.sql
-                </a>
               </div>
             </div>
           )}

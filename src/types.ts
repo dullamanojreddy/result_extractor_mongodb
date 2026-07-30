@@ -81,6 +81,12 @@ export interface MySQLConfig {
   enabled: boolean;
 }
 
+export interface MongoDBConfig {
+  uri: string;
+  database: string;
+  enabled: boolean;
+}
+
 export interface ScrapeConfig {
   portal_url: string;
   prefix: string;
@@ -92,6 +98,7 @@ export interface ScrapeConfig {
   export_csv: boolean;
   retry_limit: number;
   mysql?: MySQLConfig;
+  mongodb?: MongoDBConfig;
   // Pipeline Settings
   fetch_workers?: number;
   parse_workers?: number;
@@ -127,8 +134,8 @@ export interface LogEntry {
 }
 
 export interface DatabaseStats {
-  driver: 'mysql' | 'local_json';
-  mysql_connected?: boolean;
+  driver: 'mongodb' | 'local_json';
+  mongodb_connected?: boolean;
   total_students: number;
   found_students: number;
   missing_students: number;

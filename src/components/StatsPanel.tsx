@@ -25,7 +25,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
           <div className="flex items-center space-x-2">
             <BarChartIcon className="w-5 h-5 text-indigo-500" />
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-              MySQL Database Statistics
+              MongoDB Database Statistics
             </h3>
           </div>
           <button
