@@ -20,6 +20,10 @@ interface SidebarProps {
   onOpenAnalytics: () => void;
   onOpenLogs: () => void;
   onOpenSettings: () => void;
+  role?: string;
+  showAnalytics?: boolean;
+  collegeName?: string;
+  userName?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -30,7 +34,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenStudentSearch,
   onOpenAnalytics,
   onOpenLogs,
-  onOpenSettings
+  onOpenSettings,
+  role,
+  showAnalytics,
+  collegeName,
+  userName
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -105,30 +113,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Student Search</span>
           </button>
 
-          <button
-            onClick={() => handleNav('analytics', onOpenAnalytics)}
-            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
-              location.pathname === '/analytics'
-                ? 'bg-[#F3E8FF] dark:bg-purple-950/50 text-[#6B21A8] dark:text-purple-300 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <BarChart3 className={`w-4 h-4 ${location.pathname === '/analytics' ? 'text-[#6B21A8] dark:text-purple-400' : 'text-slate-400'}`} />
-            <span>Analytics</span>
-          </button>
+          {(role === 'admin' || showAnalytics) && (
+            <button
+              onClick={() => handleNav('analytics', onOpenAnalytics)}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                location.pathname === '/analytics'
+                  ? 'bg-[#F3E8FF] dark:bg-purple-950/50 text-[#6B21A8] dark:text-purple-300 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <BarChart3 className={`w-4 h-4 ${location.pathname === '/analytics' ? 'text-[#6B21A8] dark:text-purple-400' : 'text-slate-400'}`} />
+              <span>Analytics</span>
+            </button>
+          )}
 
 
-          <div className="pt-2 pb-1">
-            <div className="border-t border-slate-200/80 dark:border-slate-800 my-1" />
-          </div>
+          {role === 'admin' && (
+            <>
+              <div className="pt-2 pb-1">
+                <div className="border-t border-slate-200/80 dark:border-slate-800 my-1" />
+              </div>
 
-          <button
-            onClick={() => handleNav('logs', onOpenLogs)}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
-          >
-            <FileText className="w-4 h-4 text-slate-400" />
-            <span>Logs</span>
-          </button>
+              <button
+                onClick={() => handleNav('logs', onOpenLogs)}
+                className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-slate-400" />
+                <span>Logs</span>
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => handleNav('settings', onOpenSettings)}
@@ -149,13 +163,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <div className="overflow-hidden">
           <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
-            Academic
+            {userName || 'Academic'}
           </h4>
           <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate">
-            Institution
+            {collegeName || 'Institution'}
           </p>
           <span className="inline-block text-[9px] font-bold text-[#6B21A8] dark:text-purple-400 mt-0.5">
-            Local System
+            {role === 'admin' ? 'Administrator' : 'College Staff'}
           </span>
         </div>
       </div>

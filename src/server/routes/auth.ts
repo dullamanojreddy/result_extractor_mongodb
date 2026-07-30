@@ -5,6 +5,7 @@ import { College } from '../models/College';
 import { User } from '../models/User';
 import { Session } from '../models/Session';
 import { AuthRequest, authMiddleware } from '../middleware/auth';
+import { adminOnly } from '../middleware/auth';
 
 const router = Router();
 
@@ -24,13 +25,16 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
     }
 
     // Find or create college
-    let collegeDoc = await College.findOne({ name: college });
+    const collegeName = college;
+    let collegeDoc = await College.findOne({
+      $or: [{ collegeName: collegeName }, { name: collegeName }]
+    });
     if (!collegeDoc) {
-      collegeDoc = await College.create({ name: college, createdBy: email });
+      collegeDoc = await College.create({ collegeName: collegeName, createdBy: email });
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     // Create user
     const user = await User.create({
@@ -64,7 +68,7 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
         email: user.email,
         role: user.role,
         collegeId: user.collegeId,
-        collegeName: collegeDoc.name
+        collegeName: collegeDoc.collegeName || collegeDoc.name || ''
       }
     });
   } catch (err: any) {
@@ -122,7 +126,7 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
         email: user.email,
         role: user.role,
         collegeId: user.collegeId,
-        collegeName: college?.name || ''
+        collegeName: college?.collegeName || college?.name || ''
       }
     });
   } catch (err: any) {
@@ -164,7 +168,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
       email: user.email,
       role: user.role,
       collegeId: user.collegeId,
-      collegeName: college?.name || ''
+      collegeName: college?.collegeName || college?.name || ''
     });
   } catch (err: any) {
     console.error('Get user error:', err);

@@ -40,6 +40,7 @@ export class ScraperPipeline {
   private itemsPerMinute: number = 0;
 
   private currentSessionId: string = '';
+  private currentCollegeId?: string = '';
   private config: ScrapeConfig = {
     portal_url: '',
     prefix: '',
@@ -61,10 +62,12 @@ export class ScraperPipeline {
     return ScraperPipeline.instance;
   }
 
-  public startSession(config: ScrapeConfig): void {
+  public startSession(config: ScrapeConfig, collegeId?: string): void {
     if (this.status === 'running') {
       throw new Error('Scrape pipeline is already running.');
     }
+
+    this.currentCollegeId = collegeId;
 
     this.config = { ...config };
     this.maxFetchWorkers = config.fetch_workers || 3;
@@ -280,7 +283,7 @@ export class ScraperPipeline {
 
       for (const student of batch) {
         if (!student) continue;
-        db.saveStudent(student);
+        db.saveStudent(student, this.currentCollegeId);
         this.processedCount++;
         if (student.is_missing) {
           this.missingCount++;

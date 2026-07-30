@@ -4,12 +4,13 @@ import { db } from './database.js';
 export async function fetchStudentResult(
   hallTicket: string,
   portalUrl: string = '',
-  delayMs: number = 500
+  delayMs: number = 500,
+  collegeId?: string
 ): Promise<Student> {
   console.log(`[SCRAPER] >>> Starting fetch for ${hallTicket}`);
   
   // Check DB first - only return cached if it's not a missing record
-  const existing = await db.getStudentByHallTicket(hallTicket);
+  const existing = await db.getStudentByHallTicket(hallTicket, collegeId);
   if (existing && !existing.is_missing) {
     console.log(`[SCRAPER] >>> CACHE HIT for ${hallTicket} - name: ${existing.name}`);
     db.addLog('info', `Cache Hit: ${hallTicket} retrieved from database.`, hallTicket);
@@ -91,7 +92,7 @@ export async function fetchStudentResult(
       parsed.sgpa = (parseFloat(parsed.sgpa as any) || 0).toFixed(2);
       parsed.cgpa = (parseFloat(parsed.cgpa as any) || 0).toFixed(2);
       
-      await db.saveStudent(parsed);
+      await db.saveStudent(parsed, collegeId);
       await db.addLog(
         parsed.is_missing ? 'warning' : 'success',
         parsed.is_missing ? `Not Found: Recorded missing ticket ${hallTicket} as '-'.` : `Success: Fetched ${hallTicket} (${parsed.name}).`,
@@ -112,7 +113,7 @@ export async function fetchStudentResult(
   // Keep fields as string representations
   fallback.sgpa = (parseFloat(fallback.sgpa as any) || 0).toFixed(2);
   fallback.cgpa = (parseFloat(fallback.cgpa as any) || 0).toFixed(2);
-  await db.saveStudent(fallback);
+  await db.saveStudent(fallback, collegeId);
   await db.addLog(
     fallback.is_missing ? 'warning' : 'success',
     fallback.is_missing ? `Not Found: Ticket ${hallTicket} marked missing.` : `Success: Parsed result for ${hallTicket} (${fallback.name}).`,

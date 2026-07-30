@@ -17,8 +17,17 @@ export async function register(name: string, email: string, password: string, co
   });
 
   if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || 'Registration failed');
+    let errMsg = 'Registration failed';
+    try {
+      const data = await response.json();
+      errMsg = data.error || errMsg;
+    } catch (_) {
+      try {
+        const text = await response.text();
+        if (text) errMsg = text;
+      } catch (_) {}
+    }
+    throw new Error(errMsg);
   }
 
   return response.json();
@@ -32,8 +41,17 @@ export async function login(email: string, password: string): Promise<{ token: s
   });
 
   if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || 'Login failed');
+    let errMsg = 'Login failed';
+    try {
+      const data = await response.json();
+      errMsg = data.error || errMsg;
+    } catch (_) {
+      try {
+        const text = await response.text();
+        if (text) errMsg = text;
+      } catch (_) {}
+    }
+    throw new Error(errMsg);
   }
 
   return response.json();

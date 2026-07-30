@@ -18,7 +18,7 @@ import { pipeline } from './src/server/services/ScraperPipeline.js';
 import { AnalyticsService } from './src/server/services/AnalyticsService.js';
 import { RawHtmlStorage } from './src/server/services/RawHtmlStorage.js';
 import { Student } from './src/types.js';
-import { authMiddleware, AuthRequest } from './src/server/middleware/auth.js';
+import { authMiddleware, AuthRequest, adminOnly } from './src/server/middleware/auth.js';
 import authRoutes from './src/server/routes/auth.js';
 import collegeRoutes from './src/server/routes/colleges.js';
 import mongoose from 'mongoose';
@@ -75,57 +75,58 @@ async function startServer() {
   app.use('/api/auth', authRoutes);
   app.use('/api/colleges', collegeRoutes);
 
-  // Pipeline Routes
-  app.post('/api/pipeline/start', (req, res) => {
+  // Pipeline Routes (protected - college isolated)
+  app.post('/api/pipeline/start', authMiddleware, (req: AuthRequest, res) => {
     try {
       const config = req.body;
-      pipeline.startSession(config);
+      pipeline.startSession(config, req.user?.collegeId);
       res.json({ success: true, message: 'Pipeline session started' });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }
   });
 
-  app.post('/api/pipeline/pause', (_req, res) => {
+  app.post('/api/pipeline/pause', authMiddleware, (_req, res) => {
     pipeline.pauseSession();
     res.json({ success: true, message: 'Pipeline paused' });
   });
 
-  app.post('/api/pipeline/resume', (_req, res) => {
+  app.post('/api/pipeline/resume', authMiddleware, (_req, res) => {
     pipeline.resumeSession();
     res.json({ success: true, message: 'Pipeline resumed' });
   });
 
-  app.post('/api/pipeline/stop', (_req, res) => {
+  app.post('/api/pipeline/stop', authMiddleware, (_req, res) => {
     pipeline.stopSession();
     res.json({ success: true, message: 'Pipeline stopped' });
   });
 
-  app.get('/api/pipeline/stats', (_req, res) => {
+  app.get('/api/pipeline/stats', authMiddleware, (_req, res) => {
     res.json(pipeline.getStats());
   });
 
-  // Analytics Routes (protected - college isolated)
-  app.get('/api/analytics/advanced', authMiddleware, async (req: AuthRequest, res) => {
+  // Analytics Routes (protected - admin only, college isolated)
+  app.get('/api/analytics/advanced', authMiddleware, adminOnly, async (req: AuthRequest, res) => {
     res.json(await AnalyticsService.getAdvancedAnalytics(req.user?.collegeId));
   });
 
-  app.get('/api/analytics/subject', async (req, res) => {
+  app.get('/api/analytics/subject', authMiddleware, adminOnly, async (req: AuthRequest, res) => {
     const query = (req.query.q as string) || '';
     if (!query) {
       res.status(400).json({ error: 'Query parameter q is required' });
       return;
     }
-    res.json(await AnalyticsService.getSubjectAnalytics(query));
+    res.json(await AnalyticsService.getSubjectAnalytics(query, req.user?.collegeId));
   });
 
-  // Individual Student Lookup
-  app.get('/api/student/:hallTicket', async (req, res) => {
+  // Individual Student Lookup (protected - college isolated)
+  app.get('/api/student/:hallTicket', authMiddleware, async (req: AuthRequest, res) => {
     const ht = req.params.hallTicket;
-    let student = await db.getStudentByHallTicket(ht);
+    const collegeId = req.user?.collegeId;
+    let student = await db.getStudentByHallTicket(ht, collegeId);
     if (!student) {
       try {
-        student = await fetchStudentResult(ht, undefined, 0);
+        student = await fetchStudentResult(ht, undefined, 0, collegeId);
       } catch (err: any) {
         res.status(404).json({ error: `Student ${ht} not found` });
         return;
@@ -144,12 +145,12 @@ async function startServer() {
     }
   });
 
-  // Raw HTML Cache Management
-  app.get('/api/raw-html/list', (_req, res) => {
+  // Raw HTML Cache Management (protected - admin only)
+  app.get('/api/raw-html/list', authMiddleware, adminOnly, (_req, res) => {
     res.json(RawHtmlStorage.listAll());
   });
 
-  app.get('/api/raw-html/view/:hallTicket', (req, res) => {
+  app.get('/api/raw-html/view/:hallTicket', authMiddleware, adminOnly, (req, res) => {
     const html = RawHtmlStorage.getHtml(req.params.hallTicket);
     if (html) {
       res.setHeader('Content-Type', 'text/html');
@@ -159,13 +160,13 @@ async function startServer() {
     }
   });
 
-  app.post('/api/raw-html/reparse', async (_req, res) => {
+  app.post('/api/raw-html/reparse', authMiddleware, adminOnly, async (_req, res) => {
     const result = await pipeline.reparseAllCachedHtml();
     res.json(result);
   });
 
-  // Class Result Route
-  app.post('/api/class-result', async (req, res) => {
+  // Class Result Route (protected - college isolated)
+  app.post('/api/class-result', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const {
         prefix = '',
@@ -197,7 +198,7 @@ async function startServer() {
 
       for (const ht of tickets) {
         if (!force_refresh) {
-          const cached = await db.getStudentByHallTicket(ht);
+          const cached = await db.getStudentByHallTicket(ht, req.user?.collegeId);
           if (cached) {
             results.push(cached);
             continue;
@@ -205,7 +206,7 @@ async function startServer() {
         }
 
         // Fetch missing ticket from portal
-        const student = await fetchStudentResult(ht, portal_url, delay);
+        const student = await fetchStudentResult(ht, portal_url, delay, req.user?.collegeId);
         results.push(student);
         await db.saveCheckpoint(ht, tickets[tickets.length - 1], prefix);
       }
@@ -223,8 +224,8 @@ async function startServer() {
     }
   });
 
-  // Subject Wise Result Route
-  app.post('/api/subject-result', async (req, res) => {
+  // Subject Wise Result Route (protected - college isolated)
+  app.post('/api/subject-result', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const {
         subject_name,
@@ -241,7 +242,7 @@ async function startServer() {
 
       await db.addLog('info', `Subject Result search for "${subject_name.trim()}".`);
 
-      let matches = await db.getStudentsBySubject(subject_name);
+      let matches = await db.getStudentsBySubject(subject_name, req.user?.collegeId);
 
       // If no matches found and auto_fetch_missing is enabled, fetch specified range first
       if (matches.length === 0 && auto_fetch_missing) {
@@ -254,13 +255,13 @@ async function startServer() {
         for (let i = startNum; i <= endNum; i++) {
           const numStr = String(i).padStart(padLen, '0');
           const ht = `${prefix}${numStr}`;
-          if (!await db.getStudentByHallTicket(ht)) {
-            await fetchStudentResult(ht, undefined, 100);
+          if (!await db.getStudentByHallTicket(ht, req.user?.collegeId)) {
+            await fetchStudentResult(ht, undefined, 100, req.user?.collegeId);
           }
         }
 
         // Re-query database
-        matches = await db.getStudentsBySubject(subject_name);
+        matches = await db.getStudentsBySubject(subject_name, req.user?.collegeId);
       }
 
       res.json({
@@ -274,16 +275,16 @@ async function startServer() {
     }
   });
 
-  // Export Excel
-  app.get('/api/export/excel', async (req, res) => {
+  // Export Excel (protected - college isolated)
+  app.get('/api/export/excel', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const prefix = (req.query.prefix as string) || '1602-24-737-';
       const start = (req.query.start as string) || '001';
       const end = (req.query.end as string) || '120';
 
-      let students = await db.getStudentsByRange(prefix, start, end);
+      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId);
       if (students.length === 0) {
-        students = await db.getAllStudents();
+        students = await db.getAllStudents(req.user?.collegeId);
       }
 
       const buffer = generateExcelBuffer(students);
@@ -297,16 +298,16 @@ async function startServer() {
     }
   });
 
-  // Export CSV
-  app.get('/api/export/csv', async (req, res) => {
+  // Export CSV (protected - college isolated)
+  app.get('/api/export/csv', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const prefix = (req.query.prefix as string) || '1602-24-737-';
       const start = (req.query.start as string) || '001';
       const end = (req.query.end as string) || '120';
 
-      let students = await db.getStudentsByRange(prefix, start, end);
+      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId);
       if (students.length === 0) {
-        students = await db.getAllStudents();
+        students = await db.getAllStudents(req.user?.collegeId);
       }
 
       const csvContent = generateCsvString(students);
@@ -320,16 +321,16 @@ async function startServer() {
     }
   });
 
-  // Export JSON
-  app.get('/api/export/json', async (req, res) => {
+  // Export JSON (protected - college isolated)
+  app.get('/api/export/json', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const prefix = (req.query.prefix as string) || '1602-24-737-';
       const start = (req.query.start as string) || '001';
       const end = (req.query.end as string) || '120';
 
-      let students = await db.getStudentsByRange(prefix, start, end);
+      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId);
       if (students.length === 0) {
-        students = await db.getAllStudents();
+        students = await db.getAllStudents(req.user?.collegeId);
       }
 
       res.setHeader('Content-Type', 'application/json');
@@ -346,33 +347,37 @@ async function startServer() {
     res.json(await db.getStats(req.user?.collegeId));
   });
 
-  // Get Unique Subject Names for Suggestions
-  app.get('/api/unique-subjects', async (_req, res) => {
-    res.json(await db.getUniqueSubjectNames());
+  // Get Unique Subject Names for Suggestions (protected - college isolated)
+  app.get('/api/unique-subjects', authMiddleware, async (req: AuthRequest, res) => {
+    res.json(await db.getUniqueSubjectNames(req.user?.collegeId));
   });
 
-  // Search Subject (direct query from student_subjects table)
-  app.get('/api/search-subject', async (req, res) => {
+  // Search Subject (direct query from student_subjects table - protected)
+  app.get('/api/search-subject', authMiddleware, async (req: AuthRequest, res) => {
     const query = (req.query.q as string) || '';
     if (!query) {
       res.json([]);
       return;
     }
-    res.json(await db.getStudentsBySubject(query));
+    res.json(await db.getStudentsBySubject(query, req.user?.collegeId));
   });
 
-  // Recent Students (last 5 fetched records)
-  app.get('/api/recent-students', async (_req, res) => {
+  // Recent Students (last 5 fetched records - protected)
+  app.get('/api/recent-students', authMiddleware, async (req: AuthRequest, res) => {
     try {
       if (db.mongoDb && db.mongoConnected) {
+        const query: any = { is_missing: 0 };
+        if (req.user?.collegeId) {
+          query.collegeId = req.user.collegeId;
+        }
         const rows = await db.mongoDb.collection('students')
-          .find({ is_missing: 0 })
+          .find(query)
           .sort({ created_at: -1 })
           .limit(5)
           .toArray();
         const recent = [];
         for (const r of rows) {
-          const s = await db.getStudentByHallTicket(r.hall_ticket);
+          const s = await db.getStudentByHallTicket(r.hall_ticket, req.user?.collegeId);
           if (s) recent.push(s);
         }
         res.json(recent);
@@ -384,8 +389,8 @@ async function startServer() {
     }
   });
 
-  // Filtered Subject Results with Range
-  app.get('/api/subject-filtered', async (req, res) => {
+  // Filtered Subject Results with Range (protected)
+  app.get('/api/subject-filtered', authMiddleware, async (req: AuthRequest, res) => {
     const subjectName = (req.query.subject as string) || '';
     const prefix = (req.query.prefix as string) || '1602-24-737-';
     const start = (req.query.start as string) || '001';
@@ -396,28 +401,63 @@ async function startServer() {
       return;
     }
     
-    res.json(await db.getFilteredSubjectResults(subjectName, prefix, start, end));
+    res.json(await db.getFilteredSubjectResults(subjectName, prefix, start, end, req.user?.collegeId));
   });
 
-  // Get Logs
-  app.get('/api/logs', async (_req, res) => {
+  // Get Logs (protected - admin only)
+  app.get('/api/logs', authMiddleware, adminOnly, async (_req, res) => {
     res.json(await db.getLogs());
   });
 
-  // Clear Logs
-  app.post('/api/logs/clear', async (_req, res) => {
+  // Clear Logs (protected - admin only)
+  app.post('/api/logs/clear', authMiddleware, adminOnly, async (_req, res) => {
     await db.clearLogs();
     res.json({ message: 'Logs cleared' });
   });
 
-  // Database Clear
-  app.post('/api/db/clear', async (_req, res) => {
+  // Database Clear (protected - admin only)
+  app.post('/api/db/clear', authMiddleware, adminOnly, async (_req, res) => {
     await db.clearDatabase();
     res.json({ message: 'Database cleared' });
   });
 
-  // Delete specific students
-  app.post('/api/students/delete', async (req, res) => {
+  // Delete specific student by ID or Hall Ticket (protected - admin only)
+  app.delete('/api/students/:id', authMiddleware, adminOnly, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      if (!id) {
+        return res.status(400).json({ error: 'ID or Hall Ticket is required' });
+      }
+
+      if (db.mongoDb && db.mongoConnected) {
+        let query: any;
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          query = { _id: new mongoose.Types.ObjectId(id) };
+        } else {
+          query = { hall_ticket: id };
+        }
+
+        const student = await db.mongoDb.collection('students').findOne(query);
+        if (!student) {
+          return res.status(404).json({ error: 'Student not found' });
+        }
+
+        const hallTicket = student.hall_ticket;
+        await db.mongoDb.collection('student_subjects').deleteMany({ hall_ticket: hallTicket });
+        await db.mongoDb.collection('students').deleteOne({ hall_ticket: hallTicket });
+
+        await db.addLog('info', `Deleted student record ${hallTicket} via DELETE route.`);
+        res.json({ success: true, message: `Successfully deleted student ${hallTicket}.` });
+      } else {
+        res.status(500).json({ error: 'Database not connected' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Deletion failed' });
+    }
+  });
+
+  // Delete specific students (protected - admin only)
+  app.post('/api/students/delete', authMiddleware, adminOnly, async (req, res) => {
     try {
       const { hall_tickets } = req.body;
       if (!Array.isArray(hall_tickets) || hall_tickets.length === 0) {
@@ -435,7 +475,7 @@ async function startServer() {
         res.status(500).json({ error: 'Database not connected' });
       }
     } catch (err: any) {
-      res.status(500).json({ error: err.message || 'Deletion failed' });
+      res.status(550).json({ error: err.message || 'Deletion failed' });
     }
   });
 

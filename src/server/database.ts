@@ -237,12 +237,12 @@ class DatabaseService {
     }
   }
 
-  public async saveStudent(student: Student): Promise<Student> {
+  public async saveStudent(student: Student, collegeId?: string): Promise<Student> {
     // Async wrapper for compatibility
-    return this.saveStudentAsync(student);
+    return this.saveStudentAsync(student, collegeId);
   }
 
-  public async getStudentsByRange(prefix: string, startNum: string, endNum: string): Promise<Student[]> {
+  public async getStudentsByRange(prefix: string, startNum: string, endNum: string, collegeId?: string): Promise<Student[]> {
     if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
@@ -255,7 +255,7 @@ class DatabaseService {
       for (let i = start; i <= end; i++) {
         const numStr = String(i).padStart(padLen, '0');
         const ht = `${prefix}${numStr}`;
-        const student = await this.getStudentByHallTicket(ht);
+        const student = await this.getStudentByHallTicket(ht, collegeId);
         if (student) {
           results.push(student);
         }
@@ -389,7 +389,7 @@ class DatabaseService {
   }
 
   // Get filtered subject results with range support
-  public async getFilteredSubjectResults(subjectName: string, prefix: string, start: string, end: string): Promise<Array<{
+  public async getFilteredSubjectResults(subjectName: string, prefix: string, start: string, end: string, collegeId?: string): Promise<Array<{
     hall_ticket: string;
     name: string;
     grade: string;
@@ -404,21 +404,28 @@ class DatabaseService {
       const endNum = parseInt(end, 10) || 999;
       const prefixLen = prefix.length;
 
-      // Build a regex pattern for hall_ticket range filtering
-      // We need to extract the numeric part after the prefix and filter by range
+      const pipeline: any[] = [
+        { $match: { subject_name: subjectName } },
+        { $lookup: {
+            from: 'students',
+            localField: 'hall_ticket',
+            foreignField: 'hall_ticket',
+            as: 'student'
+        }},
+        { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } }
+      ];
+
+      if (collegeId) {
+        pipeline.push({ $match: { 'student.collegeId': collegeId } });
+      }
+
+      pipeline.push(
+        { $match: { hall_ticket: { $regex: `^${prefix}` } } },
+        { $sort: { hall_ticket: 1 } }
+      );
+
       const docs = await this.mongoDb.collection('student_subjects')
-        .aggregate([
-          { $match: { subject_name: subjectName } },
-          { $lookup: {
-              from: 'students',
-              localField: 'hall_ticket',
-              foreignField: 'hall_ticket',
-              as: 'student'
-          }},
-          { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } },
-          { $match: { hall_ticket: { $regex: `^${prefix}` } } },
-          { $sort: { hall_ticket: 1 } }
-        ])
+        .aggregate(pipeline)
         .toArray();
 
       // Filter by numeric range in application layer
@@ -443,15 +450,31 @@ class DatabaseService {
   }
 
   // Get unique subject names for suggestions
-  public async getUniqueSubjectNames(): Promise<string[]> {
+  public async getUniqueSubjectNames(collegeId?: string): Promise<string[]> {
     if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
+      const pipeline: any[] = [];
+      if (collegeId) {
+        pipeline.push(
+          {
+            $lookup: {
+              from: 'students',
+              localField: 'hall_ticket',
+              foreignField: 'hall_ticket',
+              as: 'student'
+            }
+          },
+          { $unwind: '$student' },
+          { $match: { 'student.collegeId': collegeId } }
+        );
+      }
+      pipeline.push(
+        { $group: { _id: '$subject_name' } },
+        { $sort: { _id: 1 } }
+      );
       const result = await this.mongoDb.collection('student_subjects')
-        .aggregate([
-          { $group: { _id: '$subject_name' } },
-          { $sort: { _id: 1 } }
-        ])
+        .aggregate(pipeline)
         .toArray();
       return result.map((r: any) => r._id);
     } catch (err) {

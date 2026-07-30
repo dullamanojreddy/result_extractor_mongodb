@@ -9,6 +9,14 @@ export interface AuthRequest extends Request {
   };
 }
 
+// Admin-only middleware
+export const adminOnly = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access Denied' });
+  }
+  next();
+};
+
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 

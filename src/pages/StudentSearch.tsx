@@ -5,7 +5,7 @@ import { FooterBar } from '../components/FooterBar';
 import { getStudents, deleteStudents } from '../services/api';
 import API_URL from '../config/api';
 
-export default function StudentSearch() {
+export default function StudentSearch({ role }: { role?: string }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -260,7 +260,7 @@ export default function StudentSearch() {
             <div className="px-5 py-4 bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <span className="text-xs font-black uppercase text-slate-500 tracking-wider">Student Directory List</span>
-                {selectedRolls.length > 0 && (
+                {role === 'admin' && selectedRolls.length > 0 && (
                   <button
                     onClick={handleDeleteSelected}
                     className="px-3.5 py-1.5 rounded-xl bg-[#DC2626] dark:bg-[#EF4444] text-white hover:bg-[#B91C1C] dark:hover:bg-[#DC2626] text-[11px] font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-red-500/30"
@@ -275,20 +275,22 @@ export default function StudentSearch() {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-neutral-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-neutral-800 font-bold uppercase tracking-wider text-[10px]">
-                    <th className="p-4 text-left font-bold w-12" rowSpan={2}>
-                      <input
-                        type="checkbox"
-                        checked={processedStudents.length > 0 && processedStudents.every(st => selectedRolls.includes(st.hall_ticket))}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedRolls(processedStudents.map(st => st.hall_ticket));
-                          } else {
-                            setSelectedRolls([]);
-                          }
-                        }}
-                        className="w-4 h-4 rounded text-red-650 focus:ring-red-500 border-slate-300 dark:border-neutral-800 bg-white dark:bg-black cursor-pointer"
-                      />
-                    </th>
+                    {role === 'admin' && (
+                      <th className="p-4 text-left font-bold w-12" rowSpan={2}>
+                        <input
+                          type="checkbox"
+                          checked={processedStudents.length > 0 && processedStudents.every(st => selectedRolls.includes(st.hall_ticket))}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedRolls(processedStudents.map(st => st.hall_ticket));
+                            } else {
+                              setSelectedRolls([]);
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-red-650 focus:ring-red-500 border-slate-300 dark:border-neutral-800 bg-white dark:bg-black cursor-pointer"
+                        />
+                      </th>
+                    )}
                     <th className="p-4 text-left font-bold" rowSpan={2}>S.No</th>
                     <th className="p-4 text-left font-bold" rowSpan={2}>Hall Ticket</th>
                     <th className="p-4 text-left font-bold" rowSpan={2}>Student Name</th>
@@ -312,20 +314,22 @@ export default function StudentSearch() {
                       }}
                       className="hover:bg-slate-500/5 dark:hover:bg-neutral-900 cursor-pointer transition"
                     >
-                      <td className="p-4 w-12" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedRolls.includes(st.hall_ticket)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedRolls(prev => [...prev, st.hall_ticket]);
-                            } else {
-                              setSelectedRolls(prev => prev.filter(roll => roll !== st.hall_ticket));
-                            }
-                          }}
-                          className="w-4 h-4 rounded text-red-650 focus:ring-red-500 border-slate-300 dark:border-neutral-800 bg-white dark:bg-black cursor-pointer"
-                        />
-                      </td>
+                      {role === 'admin' && (
+                        <td className="p-4 w-12" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedRolls.includes(st.hall_ticket)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                  setSelectedRolls(prev => [...prev, st.hall_ticket]);
+                              } else {
+                                  setSelectedRolls(prev => prev.filter(roll => roll !== st.hall_ticket));
+                              }
+                            }}
+                            className="w-4 h-4 rounded text-red-650 focus:ring-red-500 border-slate-300 dark:border-neutral-800 bg-white dark:bg-black cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="p-4 font-bold text-slate-400 font-mono">#{idx + 1}</td>
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-white">{st.hall_ticket}</td>
                       <td className="p-4 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
@@ -346,7 +350,7 @@ export default function StudentSearch() {
                   ))}
                   {processedStudents.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="text-center py-24 text-slate-400 dark:text-slate-500 italic space-y-2">
+                      <td colSpan={role === 'admin' ? 9 : 8} className="text-center py-24 text-slate-400 dark:text-slate-500 italic space-y-2">
                         <User className="w-12 h-12 mx-auto opacity-30 mb-2" />
                         <p>No matching student records found</p>
                       </td>

@@ -14,7 +14,7 @@ import StudentSearch from './pages/StudentSearch';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import { Student, ScrapeConfig, DatabaseStats, LogEntry, PipelineStats } from './types';
-import { getStats, getLogs, getRecentStudents, runClassResult, clearDatabase, clearLogs } from './services/api';
+import { getStats, getLogs, getRecentStudents, runClassResult, runSubjectResult, clearDatabase, clearLogs } from './services/api';
 import { isAuthenticated, getStoredUser, logout as authLogout, type AuthUser } from './services/auth';
 import API_URL from './config/api';
 
@@ -27,6 +27,11 @@ export default function App() {
   const [authed, setAuthed] = useState<boolean>(isAuthenticated());
   const [showLogin, setShowLogin] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(getStoredUser());
+  
+  // Secret Analytics Unlock & Onboarding
+  const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [searchValue, setSearchValue] = useState<string>('');
 
   // Core Data States
   const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -73,6 +78,31 @@ export default function App() {
   const handleAuthSuccess = () => {
     setAuthed(true);
     setCurrentUser(getStoredUser());
+    // Show onboarding popup on each new login (session-based)
+    if (!sessionStorage.getItem('onboarding')) {
+      setShowOnboarding(true);
+    }
+  };
+
+  // Trigger onboarding modal on load if authenticated and session key is not set
+  useEffect(() => {
+    if (authed && !sessionStorage.getItem('onboarding')) {
+      setShowOnboarding(true);
+    }
+  }, [authed]);
+
+  // Secret analytics unlock via search
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    if (value.toLowerCase().trim() === 'i love result analyzer') {
+      setShowAnalytics(true);
+    }
+  };
+
+  // Dismiss onboarding
+  const handleOnboardingDone = () => {
+    sessionStorage.setItem('onboarding', 'done');
+    setShowOnboarding(false);
   };
 
   // Handle logout
@@ -220,6 +250,10 @@ export default function App() {
           onOpenAnalytics={() => {}}
           onOpenLogs={() => setIsLogsOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          role={currentUser?.role}
+          showAnalytics={showAnalytics}
+          collegeName={currentUser?.collegeName}
+          userName={currentUser?.name}
         />
 
         {/* Main Content View Container with Routing */}
@@ -241,11 +275,15 @@ export default function App() {
                 onOpenLogs={() => setIsLogsOpen(true)}
                 onDownloadExcel={handleDownloadExcel}
                 onDownloadCsv={handleDownloadCsv}
+                onSearchChange={handleSearchChange}
+                searchValue={searchValue}
               />
             }
           />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/student-search" element={<StudentSearch />} />
+          {(currentUser?.role === 'admin' || showAnalytics) && (
+            <Route path="/analytics" element={<AnalyticsPage />} />
+          )}
+          <Route path="/student-search" element={<StudentSearch role={currentUser?.role} />} />
         </Routes>
       </div>
 
@@ -294,6 +332,36 @@ export default function App() {
         config={config}
         onSaveConfig={setConfig}
       />
+
+      {/* Onboarding Popup */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+              <h3 className="text-lg font-bold">Welcome to Result Analyzer</h3>
+            </div>
+            <div className="p-6 space-y-3 text-sm text-slate-700 dark:text-slate-300">
+              <p>This platform does not store your result portal URL.</p>
+              <p>You must enter after each login:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>Result URL</li>
+                <li>Hall Ticket Prefix</li>
+                <li>Start Number</li>
+                <li>End Number</li>
+              </ul>
+              <p className="text-xs text-slate-500">Your data is isolated to your college.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+              <button
+                onClick={handleOnboardingDone}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
