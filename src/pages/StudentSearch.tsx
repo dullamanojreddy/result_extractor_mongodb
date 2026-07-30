@@ -3,6 +3,7 @@ import { Search, Printer, AlertCircle, FileText, User, ArrowUpDown, X, ArrowDown
 import { Student } from '../types';
 import { FooterBar } from '../components/FooterBar';
 import { getStudents, deleteStudents } from '../services/api';
+import API_URL from '../config/api';
 
 export default function StudentSearch() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -22,14 +23,14 @@ export default function StudentSearch() {
   const handleDeleteSelected = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/students/delete', {
+      const res = await fetch(`${API_URL}/api/students/delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hall_tickets: selectedRolls })
       });
       
       if (res.ok) {
-        const refreshRes = await fetch('/api/students');
+        const refreshRes = await fetch(`${API_URL}/api/students`);
         if (refreshRes.ok) {
           const data = await refreshRes.json();
           setStudents(data);
@@ -55,7 +56,7 @@ export default function StudentSearch() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch('/api/students')
+    fetch(`${API_URL}/api/students`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch students from database');
         return res.json();

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, Database, RefreshCw, AlertCircle, BookOpen, Beaker } from 'lucide-react';
+import API_URL from '../config/api';
+import { getUniqueSubjectNames } from '../services/api';
 
 interface SubjectResultMatch {
   hall_ticket: string;
@@ -57,7 +59,6 @@ export const SubjectResultModal: React.FC<SubjectResultModalProps> = ({
   // Fetch real subject names from database when modal opens
   useEffect(() => {
     if (isOpen) {
-      import { getUniqueSubjectNames } from '../services/api';
       getUniqueSubjectNames()
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
@@ -77,7 +78,7 @@ export const SubjectResultModal: React.FC<SubjectResultModalProps> = ({
 
     try {
       // Use the filtered endpoint with range
-      const res = await fetch(`/api/subject-filtered?subject=${encodeURIComponent(subjectName)}&prefix=${encodeURIComponent(prefix)}&start=${startNum}&end=${endNum}&_t=${Date.now()}`);
+      const res = await fetch(`${API_URL}/api/subject-filtered?subject=${encodeURIComponent(subjectName)}&prefix=${encodeURIComponent(prefix)}&start=${startNum}&end=${endNum}&_t=${Date.now()}`);
       
       if (res.ok) {
         const data = await res.json();

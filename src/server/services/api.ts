@@ -1,4 +1,4 @@
-import API_URL from '../config/api';
+const API_URL = '';
 
 export async function getStudents() {
   const response = await fetch(`${API_URL}/api/students`);

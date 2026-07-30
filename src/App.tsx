@@ -13,6 +13,7 @@ import AnalyticsPage from './pages/Analytics';
 import StudentSearch from './pages/StudentSearch';
 import { Student, ScrapeConfig, DatabaseStats, LogEntry, PipelineStats } from './types';
 import { getStats, getLogs, getRecentStudents, runClassResult, clearDatabase, clearLogs } from './services/api';
+import API_URL from './config/api';
 
 export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -66,7 +67,7 @@ export default function App() {
       const [statsData, logsData, pipeData] = await Promise.all([
         getStats(),
         getLogs(),
-        fetch('/api/pipeline/stats').then(res => res.ok ? res.json() : null)
+        fetch(`${API_URL}/api/pipeline/stats`).then(res => res.ok ? res.json() : null)
       ]);
 
       setStats(statsData);
@@ -161,11 +162,11 @@ export default function App() {
   };
 
   const handleDownloadExcel = () => {
-    window.location.href = `/api/export/excel?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`;
+    window.location.href = `${API_URL}/api/export/excel?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`;
   };
 
   const handleDownloadCsv = () => {
-    window.location.href = `/api/export/csv?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`;
+    window.location.href = `${API_URL}/api/export/csv?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`;
   };
 
   return (

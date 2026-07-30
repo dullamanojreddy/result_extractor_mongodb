@@ -17,6 +17,7 @@ import {
   Users
 } from 'lucide-react';
 import { ScrapeConfig, ScrapeProgress, Student } from '../types';
+import API_URL from '../config/api';
 
 interface ClassResultModalProps {
   isOpen: boolean;
@@ -526,7 +527,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
               {/* Download Buttons */}
               <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
                 <a
-                  href={`/api/export/excel?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`}
+                  href={`${API_URL}/api/export/excel?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`}
                   download
                   className="px-5 py-2.5 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-extrabold transition flex items-center gap-2 shadow-md shadow-rose-500/20"
                 >
@@ -535,7 +536,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
                 </a>
 
                 <a
-                  href={`/api/export/csv?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`}
+                  href={`${API_URL}/api/export/csv?prefix=${config.prefix}&start=${config.start_num}&end=${config.end_num}`}
                   download
                   className="px-5 py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white text-xs font-extrabold transition flex items-center gap-2 shadow-md shadow-indigo-500/20"
                 >

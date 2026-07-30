@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Search, Printer, Download, CheckCircle, AlertCircle, FileText, User } from 'lucide-react';
 import { Student } from '../types';
+import API_URL from '../config/api';
 
 interface StudentReportCardModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ export const StudentReportCardModal: React.FC<StudentReportCardModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/student/${encodeURIComponent(hallTicket.trim())}`);
+      const res = await fetch(`${API_URL}/api/student/${encodeURIComponent(hallTicket.trim())}`);
       if (!res.ok) {
         throw new Error(`Student ${hallTicket} not found`);
       }

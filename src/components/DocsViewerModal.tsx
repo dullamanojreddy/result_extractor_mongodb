@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, FileText, ChevronRight, BookOpen } from 'lucide-react';
+import API_URL from '../config/api';
 
 interface DocsViewerModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export const DocsViewerModal: React.FC<DocsViewerModalProps> = ({ isOpen, onClos
   const loadDoc = async (docName: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/docs/${docName}`);
+      const res = await fetch(`${API_URL}/api/docs/${docName}`);
       if (res.ok) {
         const data = await res.json();
         setDocContent(data.content);

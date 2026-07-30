@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, RotateCcw, Database, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { ScrapeConfig, MongoDBConfig } from '../types';
+import API_URL from '../config/api';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      fetch('/api/mongodb/status')
+      fetch(`${API_URL}/api/mongodb/status`)
         .then(res => res.json())
         .then(data => {
           if (data?.config) {
@@ -49,7 +50,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTestingMongo(true);
     setMongoResult(null);
     try {
-      const res = await fetch('/api/mongodb/connect', {
+      const res = await fetch(`${API_URL}/api/mongodb/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mongoForm)

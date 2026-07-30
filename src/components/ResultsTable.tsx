@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Download, FileSpreadsheet, CheckCircle2, UserX, ChevronDown, ChevronUp } from 'lucide-react';
 import { Student } from '../types';
+import { getStudents } from '../services/api';
 
 interface ResultsTableProps {
   students: Student[];
@@ -23,7 +24,6 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   // Lazy-load all database students on search query input to support full DB search from dashboard
   React.useEffect(() => {
     if (searchTerm.trim() && !hasLoadedDb) {
-      import { getStudents } from '../services/api';
       getStudents()
         .then(data => {
           if (Array.isArray(data)) {

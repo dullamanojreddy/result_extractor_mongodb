@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Pause, Square, RefreshCw, Cpu, Layers, HardDrive, Zap, CheckCircle2, AlertTriangle, FileCode } from 'lucide-react';
 import { PipelineStats, ScrapeConfig } from '../types';
+import API_URL from '../config/api';
 
 interface PipelineMonitorModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
     if (isOpen) {
       const fetchStats = async () => {
         try {
-          const res = await fetch('/api/pipeline/stats');
+          const res = await fetch(`${API_URL}/api/pipeline/stats`);
           if (res.ok) {
             const data = await res.json();
             setStats(data);
@@ -42,7 +43,7 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
   const handleStartPipeline = async () => {
     setLoading(true);
     try {
-      await fetch('/api/pipeline/start', {
+      await fetch(`${API_URL}/api/pipeline/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(runConfig)
@@ -55,21 +56,21 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
   };
 
   const handlePausePipeline = async () => {
-    await fetch('/api/pipeline/pause', { method: 'POST' });
+    await fetch(`${API_URL}/api/pipeline/pause`, { method: 'POST' });
   };
 
   const handleResumePipeline = async () => {
-    await fetch('/api/pipeline/resume', { method: 'POST' });
+    await fetch(`${API_URL}/api/pipeline/resume`, { method: 'POST' });
   };
 
   const handleStopPipeline = async () => {
-    await fetch('/api/pipeline/stop', { method: 'POST' });
+    await fetch(`${API_URL}/api/pipeline/stop`, { method: 'POST' });
   };
 
   const handleReparseCachedHtml = async () => {
     setReparsing(true);
     try {
-      const res = await fetch('/api/raw-html/reparse', { method: 'POST' });
+      const res = await fetch(`${API_URL}/api/raw-html/reparse`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         alert(`Successfully re-parsed ${data.reprocessed} cached HTML files into database.`);

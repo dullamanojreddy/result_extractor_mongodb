@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, AlertTriangle, BarChart3, TrendingUp, Users, Award, ShieldAlert } from 'lucide-react';
 import { AdvancedAnalytics } from '../types';
 import { FooterBar } from '../components/FooterBar';
+import { getAdvancedAnalytics } from '../services/api';
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<'toppers' | 'thresholds' | 'branches'>('toppers');
@@ -10,7 +11,6 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     setLoading(true);
-    import { getAdvancedAnalytics } from '../services/api';
     getAdvancedAnalytics()
       .then(data => setAnalytics(data))
       .catch(err => console.error(err))
