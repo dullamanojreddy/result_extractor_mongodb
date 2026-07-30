@@ -23,27 +23,10 @@ export default function StudentSearch({ role }: { role?: string }) {
   const handleDeleteSelected = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/students/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hall_tickets: selectedRolls })
-      });
-      
-      if (res.ok) {
-        const refreshRes = await fetch(`${API_URL}/api/students`);
-        if (refreshRes.ok) {
-          const data = await refreshRes.json();
-          setStudents(data);
-        }
-        setSelectedRolls([]);
-      } else {
-        let errMsg = 'Failed to delete students';
-        try {
-          const errData = await res.json();
-          errMsg = errData.error || errMsg;
-        } catch (_) {}
-        alert(errMsg);
-      }
+      await deleteStudents(selectedRolls);
+      const data = await getStudents();
+      setStudents(data);
+      setSelectedRolls([]);
     } catch (err: any) {
       console.error(err);
       alert(err.message || 'An error occurred during deletion.');
@@ -56,11 +39,7 @@ export default function StudentSearch({ role }: { role?: string }) {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(`${API_URL}/api/students`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch students from database');
-        return res.json();
-      })
+    getStudents()
       .then(data => {
         setStudents(data);
       })
