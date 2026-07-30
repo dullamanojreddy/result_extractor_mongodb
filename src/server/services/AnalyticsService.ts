@@ -2,12 +2,12 @@ import { db } from '../database.js';
 import { AdvancedAnalytics, SubjectAnalytics, Student } from '../../types.js';
 
 export class AnalyticsService {
-  public static async getAdvancedAnalytics(collegeId?: string): Promise<AdvancedAnalytics> {
-    const allStudents = await db.getAllStudents(collegeId);
+  public static async getAdvancedAnalytics(collegeId?: string, userId?: string, isAdmin?: boolean): Promise<AdvancedAnalytics> {
+    const allStudents = await db.getAllStudents(collegeId, userId, isAdmin);
     const validStudents = allStudents.filter(s => s && !s.is_missing);
 
     // Get system stats
-    const stats = await db.getStats();
+    const stats = await db.getStats(collegeId, userId, isAdmin);
 
     // Top 10 SGPA
     const topSgpa = [...validStudents]
@@ -92,8 +92,8 @@ export class AnalyticsService {
     };
   }
 
-  public static async getSubjectAnalytics(subjectQuery: string, collegeId?: string): Promise<SubjectAnalytics> {
-    const allStudents = (await db.getAllStudents(collegeId)).filter(s => s && !s.is_missing);
+  public static async getSubjectAnalytics(subjectQuery: string, collegeId?: string, userId?: string, isAdmin?: boolean): Promise<SubjectAnalytics> {
+    const allStudents = (await db.getAllStudents(collegeId, userId, isAdmin)).filter(s => s && !s.is_missing);
     const query = subjectQuery.toLowerCase().trim();
 
     let subjectCode = '';

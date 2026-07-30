@@ -178,7 +178,7 @@ class DatabaseService {
     }
   }
 
-  public async saveStudentAsync(student: Student, collegeId?: string): Promise<Student> {
+  public async saveStudentAsync(student: Student, collegeId?: string, userId?: string): Promise<Student> {
     if (!this.mongoDb || !this.mongoConnected) {
       throw new Error('MongoDB not connected');
     }
@@ -204,9 +204,17 @@ class DatabaseService {
         studentDoc.collegeId = collegeId;
       }
 
+      const updateData: any = {
+        $set: studentDoc
+      };
+
+      if (userId) {
+        updateData.$addToSet = { userIds: userId };
+      }
+
       await this.mongoDb.collection('students').updateOne(
         { hall_ticket: student.hall_ticket },
-        { $set: studentDoc },
+        updateData,
         { upsert: true }
       );
 
@@ -237,12 +245,24 @@ class DatabaseService {
     }
   }
 
-  public async saveStudent(student: Student, collegeId?: string): Promise<Student> {
+  public async saveStudent(student: Student, collegeId?: string, userId?: string): Promise<Student> {
     // Async wrapper for compatibility
-    return this.saveStudentAsync(student, collegeId);
+    return this.saveStudentAsync(student, collegeId, userId);
   }
 
-  public async getStudentsByRange(prefix: string, startNum: string, endNum: string, collegeId?: string): Promise<Student[]> {
+  public async associateStudentWithUser(ht: string, userId?: string): Promise<void> {
+    if (!this.mongoDb || !this.mongoConnected || !userId) return;
+    try {
+      await this.mongoDb.collection('students').updateOne(
+        { hall_ticket: ht },
+        { $addToSet: { userIds: userId } }
+      );
+    } catch (err) {
+      console.error(`Error associating student ${ht} with user ${userId}`, err);
+    }
+  }
+
+  public async getStudentsByRange(prefix: string, startNum: string, endNum: string, collegeId?: string, userId?: string, isAdmin?: boolean): Promise<Student[]> {
     if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
@@ -257,7 +277,14 @@ class DatabaseService {
         const ht = `${prefix}${numStr}`;
         const student = await this.getStudentByHallTicket(ht, collegeId);
         if (student) {
-          results.push(student);
+          if (userId && !isAdmin) {
+            const doc = await this.mongoDb.collection('students').findOne({ hall_ticket: ht });
+            if (doc && Array.isArray(doc.userIds) && doc.userIds.includes(userId)) {
+              results.push(student);
+            }
+          } else {
+            results.push(student);
+          }
         }
       }
       
@@ -268,13 +295,16 @@ class DatabaseService {
     }
   }
 
-  public async getAllStudents(collegeId?: string): Promise<Student[]> {
+  public async getAllStudents(collegeId?: string, userId?: string, isAdmin?: boolean): Promise<Student[]> {
     if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
-      const query: any = {};
-      if (collegeId) query.collegeId = collegeId;
-      const students = await this.mongoDb.collection('students')
+       const query: any = {};
+       if (collegeId) query.collegeId = collegeId;
+       if (userId && !isAdmin) {
+         query.userIds = userId;
+       }
+       const students = await this.mongoDb.collection('students')
         .find(query)
         .sort({ hall_ticket: 1 })
         .toArray();
@@ -312,7 +342,12 @@ class DatabaseService {
     }
   }
 
-  public async getStudentsBySubject(subjectNameQuery: string, collegeId?: string): Promise<Array<{
+  public async getStudentsBySubject(
+    subjectNameQuery: string, 
+    collegeId?: string,
+    userId?: string,
+    isAdmin?: boolean
+  ): Promise<Array<{
     hall_ticket: string;
     name: string;
     grade: string;
@@ -323,6 +358,10 @@ class DatabaseService {
     if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
+      const studentMatch: any = {};
+      if (collegeId) studentMatch['student.collegeId'] = collegeId;
+      if (userId && !isAdmin) studentMatch['student.userIds'] = userId;
+
       // 1. Try to find an EXACT match first (prevents Theory from showing Labs)
       const matchStage: any = { subject_name: subjectNameQuery };
       const exactDocs = await this.mongoDb.collection('student_subjects')
@@ -335,7 +374,7 @@ class DatabaseService {
               as: 'student'
           }},
           { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } },
-          ...(collegeId ? [{ $match: { 'student.collegeId': collegeId } }] : []),
+          ...(Object.keys(studentMatch).length > 0 ? [{ $match: studentMatch }] : []),
           { $sort: { hall_ticket: 1 } }
         ])
         .toArray();
@@ -369,7 +408,7 @@ class DatabaseService {
               as: 'student'
           }},
           { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } },
-          ...(collegeId ? [{ $match: { 'student.collegeId': collegeId } }] : []),
+          ...(Object.keys(studentMatch).length > 0 ? [{ $match: studentMatch }] : []),
           { $sort: { hall_ticket: 1 } }
         ])
         .toArray();
@@ -389,7 +428,15 @@ class DatabaseService {
   }
 
   // Get filtered subject results with range support
-  public async getFilteredSubjectResults(subjectName: string, prefix: string, start: string, end: string, collegeId?: string): Promise<Array<{
+  public async getFilteredSubjectResults(
+    subjectName: string, 
+    prefix: string, 
+    start: string, 
+    end: string, 
+    collegeId?: string,
+    userId?: string,
+    isAdmin?: boolean
+  ): Promise<Array<{
     hall_ticket: string;
     name: string;
     grade: string;
@@ -415,8 +462,12 @@ class DatabaseService {
         { $unwind: { path: '$student', preserveNullAndEmptyArrays: true } }
       ];
 
-      if (collegeId) {
-        pipeline.push({ $match: { 'student.collegeId': collegeId } });
+      const matchStage: any = {};
+      if (collegeId) matchStage['student.collegeId'] = collegeId;
+      if (userId && !isAdmin) matchStage['student.userIds'] = userId;
+
+      if (Object.keys(matchStage).length > 0) {
+        pipeline.push({ $match: matchStage });
       }
 
       pipeline.push(
@@ -450,7 +501,7 @@ class DatabaseService {
   }
 
   // Get unique subject names for suggestions
-  public async getUniqueSubjectNames(collegeId?: string): Promise<string[]> {
+  public async getUniqueSubjectNames(collegeId?: string, userId?: string, isAdmin?: boolean): Promise<string[]> {
     if (!this.mongoDb || !this.mongoConnected) return [];
     
     try {
@@ -465,9 +516,13 @@ class DatabaseService {
               as: 'student'
             }
           },
-          { $unwind: '$student' },
-          { $match: { 'student.collegeId': collegeId } }
+          { $unwind: '$student' }
         );
+        const matchObj: any = { 'student.collegeId': collegeId };
+        if (userId && !isAdmin) {
+          matchObj['student.userIds'] = userId;
+        }
+        pipeline.push({ $match: matchObj });
       }
       pipeline.push(
         { $group: { _id: '$subject_name' } },
@@ -595,7 +650,7 @@ class DatabaseService {
   }
 
   // Stats
-  public async getStats(collegeId?: string): Promise<DatabaseStats> {
+  public async getStats(collegeId?: string, userId?: string, isAdmin?: boolean): Promise<DatabaseStats> {
     if (!this.mongoDb || !this.mongoConnected) {
       return {
         driver: 'mongodb',
@@ -619,9 +674,10 @@ class DatabaseService {
       // Use aggregation for efficient stats calculation
       const matchStage: any = {};
       if (collegeId) matchStage.collegeId = collegeId;
+      if (userId && !isAdmin) matchStage.userIds = userId;
       
       const statsAggregation = await this.mongoDb.collection('students').aggregate([
-        ...(collegeId ? [{ $match: matchStage }] : []),
+        { $match: matchStage },
         {
           $group: {
             _id: null,
@@ -672,6 +728,7 @@ class DatabaseService {
       // Get top performers (students with valid SGPA, sorted descending)
       const topPerformersQuery: any = { is_missing: false, sgpa: { $ne: '-' } };
       if (collegeId) topPerformersQuery.collegeId = collegeId;
+      if (userId && !isAdmin) topPerformersQuery.userIds = userId;
       const topPerformers = await this.mongoDb.collection('students')
         .find(topPerformersQuery)
         .sort({ sgpa: -1 })
@@ -681,6 +738,7 @@ class DatabaseService {
       // Count pass/fail using aggregation
       const passFailMatch: any = { is_missing: false };
       if (collegeId) passFailMatch.collegeId = collegeId;
+      if (userId && !isAdmin) passFailMatch.userIds = userId;
       const passFailAggregation = await this.mongoDb.collection('students').aggregate([
         { $match: passFailMatch },
         {

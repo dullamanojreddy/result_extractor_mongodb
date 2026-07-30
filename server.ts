@@ -107,7 +107,7 @@ async function startServer() {
 
   // Analytics Routes (protected - admin only, college isolated)
   app.get('/api/analytics/advanced', authMiddleware, adminOnly, async (req: AuthRequest, res) => {
-    res.json(await AnalyticsService.getAdvancedAnalytics(req.user?.collegeId));
+    res.json(await AnalyticsService.getAdvancedAnalytics(req.user?.collegeId, req.user?.userId, req.user?.role === 'admin'));
   });
 
   app.get('/api/analytics/subject', authMiddleware, adminOnly, async (req: AuthRequest, res) => {
@@ -116,7 +116,7 @@ async function startServer() {
       res.status(400).json({ error: 'Query parameter q is required' });
       return;
     }
-    res.json(await AnalyticsService.getSubjectAnalytics(query, req.user?.collegeId));
+    res.json(await AnalyticsService.getSubjectAnalytics(query, req.user?.collegeId, req.user?.userId, req.user?.role === 'admin'));
   });
 
   // Individual Student Lookup (protected - college isolated)
@@ -126,7 +126,7 @@ async function startServer() {
     let student = await db.getStudentByHallTicket(ht, collegeId);
     if (!student) {
       try {
-        student = await fetchStudentResult(ht, undefined, 0, collegeId);
+        student = await fetchStudentResult(ht, undefined, 0, collegeId, req.user?.userId);
       } catch (err: any) {
         res.status(404).json({ error: `Student ${ht} not found` });
         return;
@@ -138,7 +138,7 @@ async function startServer() {
   // Get all students (protected - college isolated)
   app.get('/api/students', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const all = await db.getAllStudents(req.user?.collegeId);
+      const all = await db.getAllStudents(req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       res.json(all);
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Failed to fetch students' });
@@ -200,13 +200,14 @@ async function startServer() {
         if (!force_refresh) {
           const cached = await db.getStudentByHallTicket(ht, req.user?.collegeId);
           if (cached) {
+            await db.associateStudentWithUser(ht, req.user?.userId);
             results.push(cached);
             continue;
           }
         }
 
         // Fetch missing ticket from portal
-        const student = await fetchStudentResult(ht, portal_url, delay, req.user?.collegeId);
+        const student = await fetchStudentResult(ht, portal_url, delay, req.user?.collegeId, req.user?.userId);
         results.push(student);
         await db.saveCheckpoint(ht, tickets[tickets.length - 1], prefix);
       }
@@ -242,7 +243,7 @@ async function startServer() {
 
       await db.addLog('info', `Subject Result search for "${subject_name.trim()}".`);
 
-      let matches = await db.getStudentsBySubject(subject_name, req.user?.collegeId);
+      let matches = await db.getStudentsBySubject(subject_name, req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
 
       // If no matches found and auto_fetch_missing is enabled, fetch specified range first
       if (matches.length === 0 && auto_fetch_missing) {
@@ -256,12 +257,12 @@ async function startServer() {
           const numStr = String(i).padStart(padLen, '0');
           const ht = `${prefix}${numStr}`;
           if (!await db.getStudentByHallTicket(ht, req.user?.collegeId)) {
-            await fetchStudentResult(ht, undefined, 100, req.user?.collegeId);
+            await fetchStudentResult(ht, undefined, 100, req.user?.collegeId, req.user?.userId);
           }
         }
 
         // Re-query database
-        matches = await db.getStudentsBySubject(subject_name, req.user?.collegeId);
+        matches = await db.getStudentsBySubject(subject_name, req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       }
 
       res.json({
@@ -282,9 +283,9 @@ async function startServer() {
       const start = (req.query.start as string) || '001';
       const end = (req.query.end as string) || '120';
 
-      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId);
+      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       if (students.length === 0) {
-        students = await db.getAllStudents(req.user?.collegeId);
+        students = await db.getAllStudents(req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       }
 
       const buffer = generateExcelBuffer(students);
@@ -305,9 +306,9 @@ async function startServer() {
       const start = (req.query.start as string) || '001';
       const end = (req.query.end as string) || '120';
 
-      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId);
+      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       if (students.length === 0) {
-        students = await db.getAllStudents(req.user?.collegeId);
+        students = await db.getAllStudents(req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       }
 
       const csvContent = generateCsvString(students);
@@ -328,9 +329,9 @@ async function startServer() {
       const start = (req.query.start as string) || '001';
       const end = (req.query.end as string) || '120';
 
-      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId);
+      let students = await db.getStudentsByRange(prefix, start, end, req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       if (students.length === 0) {
-        students = await db.getAllStudents(req.user?.collegeId);
+        students = await db.getAllStudents(req.user?.collegeId, req.user?.userId, req.user?.role === 'admin');
       }
 
       res.setHeader('Content-Type', 'application/json');
@@ -344,12 +345,12 @@ async function startServer() {
 
   // Get Stats (protected - college isolated)
   app.get('/api/stats', authMiddleware, async (req: AuthRequest, res) => {
-    res.json(await db.getStats(req.user?.collegeId));
+    res.json(await db.getStats(req.user?.collegeId, req.user?.userId, req.user?.role === 'admin'));
   });
 
   // Get Unique Subject Names for Suggestions (protected - college isolated)
   app.get('/api/unique-subjects', authMiddleware, async (req: AuthRequest, res) => {
-    res.json(await db.getUniqueSubjectNames(req.user?.collegeId));
+    res.json(await db.getUniqueSubjectNames(req.user?.collegeId, req.user?.userId, req.user?.role === 'admin'));
   });
 
   // Search Subject (direct query from student_subjects table - protected)
@@ -359,7 +360,7 @@ async function startServer() {
       res.json([]);
       return;
     }
-    res.json(await db.getStudentsBySubject(query, req.user?.collegeId));
+    res.json(await db.getStudentsBySubject(query, req.user?.collegeId, req.user?.userId, req.user?.role === 'admin'));
   });
 
   // Recent Students (last 5 fetched records - protected)
@@ -369,6 +370,9 @@ async function startServer() {
         const query: any = { is_missing: 0 };
         if (req.user?.collegeId) {
           query.collegeId = req.user.collegeId;
+        }
+        if (req.user?.userId && req.user?.role !== 'admin') {
+          query.userIds = req.user.userId;
         }
         const rows = await db.mongoDb.collection('students')
           .find(query)
