@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Printer, AlertCircle, FileText, User, ArrowUpDown, X, ArrowDownAz, SlidersHorizontal } from 'lucide-react';
+import { Search, Printer, AlertCircle, FileText, User, ArrowUpDown, X, ArrowDownAz, SlidersHorizontal, Info } from 'lucide-react';
 import { Student } from '../types';
 import { FooterBar } from '../components/FooterBar';
 import { getStudents, deleteStudents } from '../services/api';
@@ -341,6 +341,13 @@ export default function StudentSearch({ role }: { role?: string }) {
           </div>
         )}
 
+        {/* Ranking Note */}
+        <div className="mt-6 flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-300">
+          <Info className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="text-sm">
+            Rankings are calculated among the currently extracted student records only. Additional extracted records may affect the ranking order.
+          </p>
+        </div>
       </div>
       <FooterBar />
 

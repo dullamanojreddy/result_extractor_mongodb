@@ -3,7 +3,7 @@ import { TopHeader } from '../components/TopHeader';
 import { FeaturedActionCards } from '../components/FeaturedActionCards';
 import { FooterBar } from '../components/FooterBar';
 import { Student, ScrapeConfig, DatabaseStats, LogEntry, PipelineStats } from '../types';
-import { Users, TrendingUp, Award, Trophy, Zap, Database, Search, ShieldCheck, ShieldAlert, Activity } from 'lucide-react';
+import { Users, TrendingUp, Award, Trophy, Zap, Database, Search, ShieldCheck, ShieldAlert, Activity, Info } from 'lucide-react';
 
 interface DashboardProps {
   darkMode: boolean;
@@ -189,6 +189,14 @@ export default function Dashboard({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Informational Note */}
+        <div className="mt-6 flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-300">
+          <Info className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="text-sm">
+            Performance metrics are generated based on the currently available extracted student records. Adding more records may update the average SGPA, CGPA, and overall analytics.
+          </p>
         </div>
       </div>
 
