@@ -19,16 +19,16 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex-1 flex flex-col justify-between overflow-y-auto bg-white dark:bg-black">
-      <div className="p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 animate-in fade-in duration-500 print:hidden">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 animate-in fade-in duration-500 print:hidden">
         
         {/* 1. Header Section */}
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-200 dark:border-indigo-800/30">
-            <BarChart3 size={32} />
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="p-2.5 sm:p-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-200 dark:border-indigo-800/30 shrink-0">
+            <BarChart3 size={28} className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">Academic Analytics</h1>
-            <p className="text-slate-500 dark:text-slate-400">Toppers, rank distribution, and performance reports</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">Academic Analytics</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">Toppers, rank distribution, and performance reports</p>
           </div>
         </div>
 
@@ -96,10 +96,10 @@ export default function AnalyticsPage() {
             </div>
 
             {/* 4. Tabs Navigation */}
-            <div className="flex border-b border-slate-200 dark:border-slate-800 gap-8">
+            <div className="flex border-b border-slate-200 dark:border-slate-800 gap-8 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('toppers')}
-                className={`pb-3 text-sm font-bold transition border-b-2 flex items-center gap-2 cursor-pointer ${
+                className={`pb-3 text-sm font-bold transition border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'toppers'
                     ? 'border-[#6B21A8] dark:border-purple-500 text-[#6B21A8] dark:text-purple-400'
                     : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -111,7 +111,7 @@ export default function AnalyticsPage() {
 
               <button
                 onClick={() => setActiveTab('thresholds')}
-                className={`pb-3 text-sm font-bold transition border-b-2 flex items-center gap-2 cursor-pointer ${
+                className={`pb-3 text-sm font-bold transition border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'thresholds'
                     ? 'border-[#6B21A8] dark:border-purple-500 text-[#6B21A8] dark:text-purple-400'
                     : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -123,7 +123,7 @@ export default function AnalyticsPage() {
 
               <button
                 onClick={() => setActiveTab('branches')}
-                className={`pb-3 text-sm font-bold transition border-b-2 flex items-center gap-2 cursor-pointer ${
+                className={`pb-3 text-sm font-bold transition border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'branches'
                     ? 'border-[#6B21A8] dark:border-purple-500 text-[#6B21A8] dark:text-purple-400'
                     : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -144,31 +144,33 @@ export default function AnalyticsPage() {
                     <span>Top 10 SGPA Rank List</span>
                   </h4>
                   <div className="border border-slate-100 dark:border-neutral-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
-                          <th className="p-3 font-semibold">Rank</th>
-                          <th className="p-3 font-semibold">Hall Ticket</th>
-                          <th className="p-3 font-semibold">Candidate</th>
-                          <th className="p-3 text-right font-mono font-semibold">SGPA</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                        {analytics.top_sgpa_10.map((st, i) => (
-                          <tr key={st.hall_ticket} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                            <td className="p-3 font-bold text-slate-400 font-mono">#{i + 1}</td>
-                            <td className="p-3 font-mono font-bold text-slate-800 dark:text-slate-200">{st.hall_ticket}</td>
-                            <td className="p-3 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
-                            <td className="p-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{st.sgpa}</td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs min-w-[520px]">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
+                            <th className="p-3 font-semibold">Rank</th>
+                            <th className="p-3 font-semibold">Hall Ticket</th>
+                            <th className="p-3 font-semibold">Candidate</th>
+                            <th className="p-3 text-right font-mono font-semibold">SGPA</th>
                           </tr>
-                        ))}
-                        {analytics.top_sgpa_10.length === 0 && (
-                          <tr>
-                            <td colSpan={4} className="p-4 text-center text-slate-400 dark:text-slate-500 italic">No topper data found</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                          {analytics.top_sgpa_10.map((st, i) => (
+                            <tr key={st.hall_ticket} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
+                              <td className="p-3 font-bold text-slate-400 font-mono">#{i + 1}</td>
+                              <td className="p-3 font-mono font-bold text-slate-800 dark:text-slate-200">{st.hall_ticket}</td>
+                              <td className="p-3 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
+                              <td className="p-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{st.sgpa}</td>
+                            </tr>
+                          ))}
+                          {analytics.top_sgpa_10.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="p-4 text-center text-slate-400 dark:text-slate-500 italic">No topper data found</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
 
@@ -179,31 +181,33 @@ export default function AnalyticsPage() {
                     <span>Top 10 CGPA Cumulative Rank</span>
                   </h4>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
-                          <th className="p-3 font-semibold">Rank</th>
-                          <th className="p-3 font-semibold">Hall Ticket</th>
-                          <th className="p-3 font-semibold">Candidate</th>
-                          <th className="p-3 text-right font-mono font-semibold">CGPA</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                        {analytics.top_cgpa_10.map((st, i) => (
-                          <tr key={st.hall_ticket} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                            <td className="p-3 font-bold text-slate-400 font-mono">#{i + 1}</td>
-                            <td className="p-3 font-mono font-bold text-slate-800 dark:text-slate-200">{st.hall_ticket}</td>
-                            <td className="p-3 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
-                            <td className="p-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{st.cgpa}</td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs min-w-[520px]">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
+                            <th className="p-3 font-semibold">Rank</th>
+                            <th className="p-3 font-semibold">Hall Ticket</th>
+                            <th className="p-3 font-semibold">Candidate</th>
+                            <th className="p-3 text-right font-mono font-semibold">CGPA</th>
                           </tr>
-                        ))}
-                        {analytics.top_cgpa_10.length === 0 && (
-                          <tr>
-                            <td colSpan={4} className="p-4 text-center text-slate-400 dark:text-slate-500 italic">No topper data found</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                          {analytics.top_cgpa_10.map((st, i) => (
+                            <tr key={st.hall_ticket} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
+                              <td className="p-3 font-bold text-slate-400 font-mono">#{i + 1}</td>
+                              <td className="p-3 font-mono font-bold text-slate-800 dark:text-slate-200">{st.hall_ticket}</td>
+                              <td className="p-3 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
+                              <td className="p-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{st.cgpa}</td>
+                            </tr>
+                          ))}
+                          {analytics.top_cgpa_10.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="p-4 text-center text-slate-400 dark:text-slate-500 italic">No topper data found</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -244,29 +248,31 @@ export default function AnalyticsPage() {
                       <span>Students Scoring Above 9.0 SGPA ({analytics.students_above_9?.length ?? 0})</span>
                     </h4>
                     <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead>
-                          <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 border-b border-slate-200/80 dark:border-slate-800">
-                            <th className="p-2.5 font-semibold">Hall Ticket</th>
-                            <th className="p-2.5 font-semibold">Name</th>
-                            <th className="p-2.5 text-right font-mono font-semibold">SGPA</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                          {analytics.students_above_9?.map(st => (
-                            <tr key={st.hall_ticket} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
-                              <td className="p-2.5 font-mono font-bold text-slate-800 dark:text-slate-200">{st.hall_ticket}</td>
-                              <td className="p-2.5 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
-                              <td className="p-2.5 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{st.sgpa}</td>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs min-w-[480px]">
+                          <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 border-b border-slate-200/80 dark:border-slate-800">
+                              <th className="p-2.5 font-semibold">Hall Ticket</th>
+                              <th className="p-2.5 font-semibold">Name</th>
+                              <th className="p-2.5 text-right font-mono font-semibold">SGPA</th>
                             </tr>
-                          ))}
-                          {(!analytics.students_above_9 || analytics.students_above_9.length === 0) && (
-                            <tr>
-                              <td colSpan={3} className="p-4 text-center text-slate-400 dark:text-slate-500 italic">No distinction students</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                            {analytics.students_above_9?.map(st => (
+                              <tr key={st.hall_ticket} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
+                                <td className="p-2.5 font-mono font-bold text-slate-800 dark:text-slate-200">{st.hall_ticket}</td>
+                                <td className="p-2.5 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
+                                <td className="p-2.5 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{st.sgpa}</td>
+                              </tr>
+                            ))}
+                            {(!analytics.students_above_9 || analytics.students_above_9.length === 0) && (
+                              <tr>
+                                <td colSpan={3} className="p-4 text-center text-slate-400 dark:text-slate-500 italic">No distinction students</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
 
@@ -277,29 +283,31 @@ export default function AnalyticsPage() {
                       <span>Students with Backlogs / F-Grades ({analytics.failed_students?.length ?? 0})</span>
                     </h4>
                     <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead>
-                          <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 border-b border-slate-200/80 dark:border-slate-800">
-                            <th className="p-2.5 font-semibold">Hall Ticket</th>
-                            <th className="p-2.5 font-semibold">Name</th>
-                            <th className="p-2.5 text-right font-mono font-semibold">SGPA</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                          {analytics.failed_students?.map(st => (
-                            <tr key={st.hall_ticket} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
-                              <td className="p-2.5 font-mono font-bold text-slate-800 dark:text-slate-200">{st.hall_ticket}</td>
-                              <td className="p-2.5 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
-                              <td className="p-2.5 text-right font-mono font-black text-rose-600 dark:text-rose-400">{st.sgpa}</td>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs min-w-[480px]">
+                          <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 border-b border-slate-200/80 dark:border-slate-800">
+                              <th className="p-2.5 font-semibold">Hall Ticket</th>
+                              <th className="p-2.5 font-semibold">Name</th>
+                              <th className="p-2.5 text-right font-mono font-semibold">SGPA</th>
                             </tr>
-                          ))}
-                          {(!analytics.failed_students || analytics.failed_students.length === 0) && (
-                            <tr>
-                              <td colSpan={3} className="p-4 text-center text-slate-400 dark:text-slate-500 italic">No backlogs reported</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                            {analytics.failed_students?.map(st => (
+                              <tr key={st.hall_ticket} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
+                                <td className="p-2.5 font-mono font-bold text-slate-800 dark:text-slate-200">{st.hall_ticket}</td>
+                                <td className="p-2.5 font-medium text-slate-700 dark:text-slate-300">{st.name}</td>
+                                <td className="p-2.5 text-right font-mono font-black text-rose-600 dark:text-rose-400">{st.sgpa}</td>
+                              </tr>
+                            ))}
+                            {(!analytics.failed_students || analytics.failed_students.length === 0) && (
+                              <tr>
+                                <td colSpan={3} className="p-4 text-center text-slate-400 dark:text-slate-500 italic">No backlogs reported</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>

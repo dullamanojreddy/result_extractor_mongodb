@@ -90,16 +90,16 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0">
               <Zap className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                 ⚡ Producer-Consumer Pipeline Monitor
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
                 Multi-threaded HTML fetchers, decoupled DOM parsers & batched database writers
               </p>
             </div>
@@ -113,7 +113,7 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-6 overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto">
           {/* Status & Controls Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl">
             <div className="flex items-center space-x-3">
@@ -265,7 +265,7 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
           {stats?.status !== 'running' && (
             <div className="p-4 bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
               <h4 className="text-xs font-bold text-slate-900 dark:text-white">Pipeline Execution Range</h4>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 mb-1">Prefix</label>
                   <input
@@ -298,7 +298,7 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
           )}
 
           {/* Offline Re-parse Trigger */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="text-xs text-slate-500">
               <span className="font-semibold text-slate-700 dark:text-slate-300">Offline HTML Re-parser</span>
               <p className="text-[11px]">Re-extract records from local `storage/raw/*.html` without network requests.</p>
@@ -307,7 +307,7 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
             <button
               onClick={handleReparseCachedHtml}
               disabled={reparsing}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5"
             >
               <FileCode className="w-3.5 h-3.5" />
               <span>{reparsing ? 'Re-parsing...' : 'Re-parse Cached HTML'}</span>
@@ -316,7 +316,7 @@ export const PipelineMonitorModal: React.FC<PipelineMonitorModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+        <div className="px-4 sm:px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
           <button
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition"

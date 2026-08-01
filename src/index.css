@@ -3,6 +3,49 @@
 /* Enable manual class-based dark mode toggling in Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ------------------------------------------------------------------ */
+/* Responsive helpers & global guards (mobile/tablet only)             */
+/* ------------------------------------------------------------------ */
+
+/* Prevent horizontal page scrolling caused by fixed-width layouts */
+html,
+body {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modal / drawer fade-in animation used across the app (was undefined) */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Slim scrollbars for horizontal table/filter containers on small screens */
+.overflow-x-auto,
+.overflow-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 9999px;
+}
+
 /* Print styles for downloading/printing Candidate Grade Cards */
 @media print {
   html, body, #root {

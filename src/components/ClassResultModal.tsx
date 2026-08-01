@@ -148,23 +148,23 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
     return `${m}:${s}`;
   };
 
-  const percent = progress ? Math.round((progress.processed_count / Math.max(1, progress.total_count)) * 100) : 0;
+  const percent = progress ? Math.round(((progress.processed_count ?? 0) / Math.max(1, progress.total_count ?? 1)) * 100) : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-rose-500/10 via-purple-500/5 to-transparent flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#E11D48] text-white flex items-center justify-center shadow-md shadow-rose-500/20">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-rose-500/10 via-purple-500/5 to-transparent flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#E11D48] text-white flex items-center justify-center shadow-md shadow-rose-500/20 shrink-0">
               <Users className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center space-x-2">
-                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight">
                   Class Result Batch Ingestion
                 </h3>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hidden sm:inline-block">
                   BATCH ENGINE
                 </span>
               </div>
@@ -176,14 +176,14 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
           <button
             onClick={onClose}
             disabled={isProcessing}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
           {!isProcessing && !extractedStudents && (
             <div className="space-y-6">
               {/* Range Preview Header Banner */}
@@ -278,7 +278,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
                   <span>3. Concurrent Worker & Pipeline Engine Settings</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
                       Fetch Workers
@@ -467,11 +467,11 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Elapsed Time</span>
-                  <p className="text-xl font-black text-slate-800 dark:text-slate-200 mt-1">{formatTime(progress.elapsed_seconds)}</p>
+                  <p className="text-xl font-black text-slate-800 dark:text-slate-200 mt-1">{formatTime(progress.elapsed_seconds ?? 0)}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Remaining (ETA)</span>
-                  <p className="text-xl font-black text-slate-800 dark:text-slate-200 mt-1">{formatTime(progress.remaining_seconds)}</p>
+                  <p className="text-xl font-black text-slate-800 dark:text-slate-200 mt-1">{formatTime(progress.remaining_seconds ?? 0)}</p>
                 </div>
               </div>
 
@@ -553,7 +553,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <button
             onClick={onClose}
             className="px-5 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
@@ -564,7 +564,7 @@ export const ClassResultModal: React.FC<ClassResultModalProps> = ({
           {!isProcessing && !extractedStudents && (
             <button
               onClick={handleStart}
-              className="px-7 py-3 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-black transition shadow-lg shadow-rose-600/25 flex items-center gap-2 cursor-pointer active:scale-[0.99]"
+              className="px-7 py-3 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-black transition shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
             >
               <Play className="w-4 h-4 fill-white" />
               <span>Start Batch Extraction</span>

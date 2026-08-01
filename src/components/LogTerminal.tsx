@@ -33,10 +33,10 @@ export const LogTerminal: React.FC<LogTerminalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-slate-950 text-slate-200 border border-slate-800 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col h-[80vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Terminal className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-sm font-bold font-mono text-white">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-800 bg-slate-900 flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 min-w-0">
+            <Terminal className="w-5 h-5 text-emerald-400 shrink-0" />
+            <h3 className="text-xs sm:text-sm font-bold font-mono text-white">
               System Runtime Logs (Terminal)
             </h3>
           </div>
@@ -66,7 +66,7 @@ export const LogTerminal: React.FC<LogTerminalProps> = ({
         </div>
 
         {/* Filter Bar */}
-        <div className="px-6 py-2 bg-slate-900/50 border-b border-slate-800/80 flex items-center space-x-2 text-xs font-mono">
+        <div className="px-4 sm:px-6 py-2 bg-slate-900/50 border-b border-slate-800/80 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-mono">
           <span className="text-slate-500">Filter:</span>
           {['all', 'info', 'success', 'warning', 'error'].map(t => (
             <button
@@ -82,7 +82,7 @@ export const LogTerminal: React.FC<LogTerminalProps> = ({
         </div>
 
         {/* Console Output Window */}
-        <div className="p-6 font-mono text-xs overflow-y-auto space-y-1.5 flex-1 bg-slate-950">
+        <div className="p-4 sm:p-6 font-mono text-xs overflow-y-auto space-y-1.5 flex-1 bg-slate-950">
           {filteredLogs.length === 0 ? (
             <div className="text-slate-600 italic py-12 text-center">No log entries recorded.</div>
           ) : (

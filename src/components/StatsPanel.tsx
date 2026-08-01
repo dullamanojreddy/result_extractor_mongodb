@@ -20,24 +20,24 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-[#121212] border border-slate-200 dark:border-neutral-800 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-indigo-500/5 dark:bg-indigo-500/10 flex items-center justify-between">
+{/* Header */}
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-indigo-500/5 dark:bg-indigo-500/10 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <BarChartIcon className="w-5 h-5 text-indigo-500" />
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
               MongoDB Database Statistics
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
           {/* Main Stat Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
@@ -69,37 +69,39 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
                 <span>Top Performers Leaderboard</span>
               </h4>
 
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-bold text-[11px]">
-                    <tr>
-                      <th className="py-2.5 px-4">Rank</th>
-                      <th className="py-2.5 px-4">Hall Ticket</th>
-                      <th className="py-2.5 px-4">Name</th>
-                      <th className="py-2.5 px-4 text-center">SGPA</th>
-                      <th className="py-2.5 px-4 text-center">CGPA</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 bg-white dark:bg-[#121212]">
-                    {stats.top_performers.map((tp, idx) => (
-                      <tr key={tp.hall_ticket} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="py-2.5 px-4 font-bold text-slate-400">
-                          {idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx + 1}`}
-                        </td>
-                        <td className="py-2.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
-                          {tp.hall_ticket}
-                        </td>
-                        <td className="py-2.5 px-4 font-medium">{tp.name}</td>
-                        <td className="py-2.5 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400">
-                          {tp.sgpa}
-                        </td>
-                        <td className="py-2.5 px-4 text-center font-bold text-emerald-600 dark:text-emerald-400">
-                          {tp.cgpa}
-                        </td>
+<div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[480px]">
+                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-bold text-[11px]">
+                      <tr>
+                        <th className="py-2.5 px-4">Rank</th>
+                        <th className="py-2.5 px-4">Hall Ticket</th>
+                        <th className="py-2.5 px-4">Name</th>
+                        <th className="py-2.5 px-4 text-center">SGPA</th>
+                        <th className="py-2.5 px-4 text-center">CGPA</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 bg-white dark:bg-[#121212]">
+                      {stats.top_performers.map((tp, idx) => (
+                        <tr key={tp.hall_ticket} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="py-2.5 px-4 font-bold text-slate-400">
+                            {idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx + 1}`}
+                          </td>
+                          <td className="py-2.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
+                            {tp.hall_ticket}
+                          </td>
+                          <td className="py-2.5 px-4 font-medium">{tp.name}</td>
+                          <td className="py-2.5 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                            {tp.sgpa}
+                          </td>
+                          <td className="py-2.5 px-4 text-center font-bold text-emerald-600 dark:text-emerald-400">
+                            {tp.cgpa}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -116,8 +118,8 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+{/* Footer */}
+        <div className="px-4 sm:px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
           <button
             onClick={onClose}
             className="px-5 py-2 rounded-xl text-xs font-semibold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition"

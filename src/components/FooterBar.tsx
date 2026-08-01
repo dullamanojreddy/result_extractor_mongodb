@@ -19,25 +19,25 @@ export const FooterBar: React.FC = () => {
   }, []);
 
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-3 px-6 text-xs text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2 mt-auto">
+    <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-3 px-4 sm:px-6 text-xs text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2 mt-auto">
       {/* Left */}
       <div className="flex items-center space-x-1.5 font-bold text-purple-700 dark:text-purple-300">
-        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+        <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
         <span>System Healthy</span>
       </div>
 
       {/* Center */}
-      <div className="flex items-center space-x-1 font-medium text-slate-500 text-[11px]">
+      <div className="flex items-center space-x-1 font-medium text-slate-500 text-[11px] flex-wrap justify-center">
         <span>Result Analyzer v1.0.0</span>
         <span>•</span>
         <span>Built with</span>
-        <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" />
+        <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline shrink-0" />
         <span>for Academic Institution</span>
       </div>
 
       {/* Right */}
       <div className="flex items-center space-x-1.5 font-medium text-slate-400 text-[11px]">
-        <Clock className="w-3.5 h-3.5" />
+        <Clock className="w-3.5 h-3.5 shrink-0" />
         <span>{timeStr}</span>
       </div>
     </footer>

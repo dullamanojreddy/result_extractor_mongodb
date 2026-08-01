@@ -51,12 +51,12 @@ export default function Dashboard({
 
   return (
     <div className="flex-1 flex flex-col justify-between overflow-y-auto bg-white dark:bg-black print:bg-white print:p-0">
-      <div className="p-6 lg:p-8 max-w-7xl w-full mx-auto print:hidden">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto print:hidden">
         {/* Top Header */}
         <TopHeader darkMode={darkMode} setDarkMode={setDarkMode} />
 
         {/* Dashboard Search Box */}
-        <div className="mb-6 max-w-md">
+        <div className="mb-6 w-full sm:max-w-md">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <Search className="w-4 h-4 text-slate-400" />
@@ -73,10 +73,10 @@ export default function Dashboard({
 
         {/* Live Pipeline Monitor Strip if running */}
         {isPipelineRunning && (
-          <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50 rounded-2xl flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400 animate-pulse" />
-              <div>
+          <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3 min-w-0">
+              <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400 animate-pulse shrink-0" />
+              <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-900 dark:text-white">Extraction Pipeline Running</p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   Processed {pipelineStats?.processed_tickets} of {pipelineStats?.total_tickets} tickets ({pipelineStats?.items_per_minute} req/m)
@@ -85,7 +85,7 @@ export default function Dashboard({
             </div>
             <button
               onClick={onOpenPipelineMonitor}
-              className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-750 text-white rounded-xl text-[11px] font-bold transition cursor-pointer"
+              className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-750 text-white rounded-xl text-[11px] font-bold transition cursor-pointer shrink-0"
             >
               Monitor Ingestion
             </button>
@@ -100,16 +100,16 @@ export default function Dashboard({
 
         {/* Stats Redesign Grid */}
         <div className="mt-8">
-          <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-4 px-1">
+          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mb-4 px-1">
             System Insights & Stats
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {/* Stat 1: Total Students */}
-            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs">
+            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs h-full min-w-0">
               <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
                 <Users className="w-6 h-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Students</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">{totalStudents}</h3>
                 <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Institutes isolated</p>
@@ -117,11 +117,11 @@ export default function Dashboard({
             </div>
 
             {/* Stat 2: Average SGPA */}
-            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs">
+            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs h-full min-w-0">
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-550 dark:text-indigo-400 flex items-center justify-center shrink-0">
                 <TrendingUp className="w-6 h-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Average SGPA</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">{avgSgpa}</h3>
                 <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Active semester records</p>
@@ -129,11 +129,11 @@ export default function Dashboard({
             </div>
 
             {/* Stat 3: Average CGPA */}
-            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs">
+            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs h-full min-w-0">
               <div className="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-550 dark:text-cyan-400 flex items-center justify-center shrink-0">
                 <Award className="w-6 h-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Average CGPA</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">{avgCgpa}</h3>
                 <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Cumulative average</p>
@@ -141,11 +141,11 @@ export default function Dashboard({
             </div>
 
             {/* Stat 4: Highest SGPA */}
-            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs">
+            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs h-full min-w-0">
               <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-550 dark:text-amber-400 flex items-center justify-center shrink-0">
                 <Trophy className="w-6 h-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Highest SGPA</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">{highestSgpa}</h3>
                 <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Top semester performer</p>
@@ -153,11 +153,11 @@ export default function Dashboard({
             </div>
 
             {/* Stat 5: Highest CGPA */}
-            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs">
+            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs h-full min-w-0">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-550 dark:text-emerald-400 flex items-center justify-center shrink-0">
                 <Zap className="w-6 h-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Highest CGPA</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">{highestCgpa}</h3>
                 <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Top overall performer</p>
@@ -165,7 +165,7 @@ export default function Dashboard({
             </div>
 
             {/* Stat 6: Database Status */}
-            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs">
+            <div className="bg-slate-50/50 dark:bg-[#121212] border border-slate-200/80 dark:border-neutral-800 rounded-3xl p-5 flex items-center space-x-4 shadow-3xs transition hover:shadow-xs h-full min-w-0">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
                 isConnected
                   ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
@@ -173,16 +173,16 @@ export default function Dashboard({
               }`}>
                 <Database className="w-6 h-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Database Status</p>
                 <div className="flex items-center space-x-1.5 mt-0.5">
                   <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
                     {isConnected ? 'MongoDB Connected' : 'Disconnected'}
                   </h3>
                   {isConnected ? (
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                   ) : (
-                    <ShieldAlert className="w-4 h-4 text-rose-500" />
+                    <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
                   )}
                 </div>
                 <p className="text-[10px] font-semibold text-slate-500 mt-0.5">State: {isConnected ? 'Active' : 'Offline'}</p>
@@ -194,7 +194,7 @@ export default function Dashboard({
         {/* Informational Note */}
         <div className="mt-6 flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-300">
           <Info className="mt-0.5 h-5 w-5 shrink-0" />
-          <p className="text-sm">
+          <p className="text-sm min-w-0">
             Performance metrics are generated based on the currently available extracted student records. Adding more records may update the average SGPA, CGPA, and overall analytics.
           </p>
         </div>

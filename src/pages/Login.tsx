@@ -35,7 +35,7 @@ export default function LoginPage({ onLogin, onSwitchToRegister }: LoginProps) {
       <div className="max-w-md w-full">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
           {/* Header */}
-          <div className="px-8 py-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-center">
+          <div className="px-5 sm:px-8 py-5 sm:py-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-2xl mb-3">
               <GraduationCap className="w-8 h-8" />
             </div>
@@ -44,7 +44,7 @@ export default function LoginPage({ onLogin, onSwitchToRegister }: LoginProps) {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-4">
+          <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-4">
             {error && (
               <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-sm text-rose-700 dark:text-rose-300">
                 {error}

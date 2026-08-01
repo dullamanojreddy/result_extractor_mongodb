@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Menu, GraduationCap } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { ClassResultModal } from './components/ClassResultModal';
 import { SubjectResultModal } from './components/SubjectResultModal';
@@ -23,6 +24,10 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Responsive sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   
   // Auth State
   const [authed, setAuthed] = useState<boolean>(isAuthenticated());
@@ -252,7 +257,7 @@ export default function App() {
     <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-white font-sans flex flex-col transition-colors duration-200 print:bg-white">
       {/* Outer Window Container (Desktop App Style) */}
       <div className="flex flex-1 min-h-screen w-full">
-        {/* Left Sidebar */}
+        {/* Left Sidebar (responsive: mobile drawer / tablet collapsible / desktop static) */}
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -268,37 +273,74 @@ export default function App() {
           showAnalytics={showAnalytics}
           collegeName={currentUser?.collegeName}
           userName={currentUser?.name}
+          isMobileOpen={isSidebarOpen}
+          onCloseMobile={() => setIsSidebarOpen(false)}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
         />
 
-        {/* Main Content View Container with Routing */}
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Dashboard
-                darkMode={darkMode}
-                setDarkMode={setDarkMode}
-                pipelineStats={pipelineStats}
-                dbStats={stats}
-                logs={logs}
-                config={config}
-                students={recentStudents}
-                onOpenClassResult={() => setIsClassModalOpen(true)}
-                onOpenSubjectResult={() => setIsSubjectModalOpen(true)}
-                onOpenPipelineMonitor={() => setIsPipelineOpen(true)}
-                onOpenLogs={() => setIsLogsOpen(true)}
-                onDownloadExcel={handleDownloadExcel}
-                onDownloadCsv={handleDownloadCsv}
-                onSearchChange={handleSearchChange}
-                searchValue={searchValue}
-              />
-            }
+        {/* Mobile backdrop overlay when drawer is open */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm md:hidden print:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-hidden="true"
           />
-          {(currentUser?.role === 'admin' || showAnalytics) && (
-            <Route path="/analytics" element={<AnalyticsPage />} />
-          )}
-          <Route path="/student-search" element={<StudentSearch role={currentUser?.role} />} />
-        </Routes>
+        )}
+
+        {/* Main Content View Container with Routing */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* Mobile top bar with hamburger (visible < md only) */}
+          <div className="md:hidden sticky top-0 z-30 flex items-center gap-3 px-4 h-14 border-b border-slate-200/80 dark:border-neutral-800 bg-white/90 dark:bg-black/90 backdrop-blur-md print:hidden">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 -ml-1 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              aria-label="Open navigation menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center space-x-2 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[#7C3AED] text-white flex items-center justify-center font-black text-[10px] shrink-0">
+                RA
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-sm font-black text-slate-900 dark:text-white leading-tight truncate">
+                  Result Analyzer
+                </h1>
+                <p className="text-[10px] font-medium text-slate-400 truncate">v1.0.0</p>
+              </div>
+            </div>
+          </div>
+
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Dashboard
+                  darkMode={darkMode}
+                  setDarkMode={setDarkMode}
+                  pipelineStats={pipelineStats}
+                  dbStats={stats}
+                  logs={logs}
+                  config={config}
+                  students={recentStudents}
+                  onOpenClassResult={() => setIsClassModalOpen(true)}
+                  onOpenSubjectResult={() => setIsSubjectModalOpen(true)}
+                  onOpenPipelineMonitor={() => setIsPipelineOpen(true)}
+                  onOpenLogs={() => setIsLogsOpen(true)}
+                  onDownloadExcel={handleDownloadExcel}
+                  onDownloadCsv={handleDownloadCsv}
+                  onSearchChange={handleSearchChange}
+                  searchValue={searchValue}
+                />
+              }
+            />
+            {(currentUser?.role === 'admin' || showAnalytics) && (
+              <Route path="/analytics" element={<AnalyticsPage />} />
+            )}
+            <Route path="/student-search" element={<StudentSearch role={currentUser?.role} />} />
+          </Routes>
+        </div>
       </div>
 
       {/* Modals & Dialogs */}

@@ -103,25 +103,25 @@ export const SubjectResultModal: React.FC<SubjectResultModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-[#121212] border border-slate-200 dark:border-neutral-800 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-blue-500/5 dark:bg-blue-500/10 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="text-xl">🔵</span>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-blue-500/5 dark:bg-blue-500/10 flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-2 min-w-0">
+            <span className="text-xl shrink-0">🔵</span>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
               Subject Wise Result
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
           {/* Category Selection: Theory vs Lab */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button 
               onClick={() => { setCategory('Theory'); setSelectedSubject(''); setMatches(null); }}
               className={`flex-1 py-3 rounded-xl border-2 transition-all font-bold text-sm ${
@@ -147,7 +147,7 @@ export const SubjectResultModal: React.FC<SubjectResultModalProps> = ({
           </div>
 
           {/* Range Selection */}
-          <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-black rounded-xl border border-slate-200 dark:border-neutral-800">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-black rounded-xl border border-slate-200 dark:border-neutral-800">
             <div>
               <label className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-black mb-1 block">Prefix</label>
               <input 
@@ -254,47 +254,49 @@ export const SubjectResultModal: React.FC<SubjectResultModalProps> = ({
               </div>
 
               <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200 dark:border-slate-700">
-                    <tr>
-                      <th className="py-3 px-4">Hall Ticket</th>
-                      <th className="py-3 px-4">Name</th>
-                      <th className="py-3 px-4">Subject Code</th>
-                      <th className="py-3 px-4">Subject Name</th>
-                      <th className="py-3 px-4 text-center">Grade</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-[#121212] text-slate-800 dark:text-slate-200">
-                    {filteredMatches.length === 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[560px]">
+                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200 dark:border-slate-700">
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-slate-400 font-semibold italic">
-                          No matching records found for the selected grade filter.
-                        </td>
+                        <th className="py-3 px-4">Hall Ticket</th>
+                        <th className="py-3 px-4">Name</th>
+                        <th className="py-3 px-4">Subject Code</th>
+                        <th className="py-3 px-4">Subject Name</th>
+                        <th className="py-3 px-4 text-center">Grade</th>
                       </tr>
-                    ) : (
-                      filteredMatches.map((m, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                          <td className="py-2.5 px-4 font-mono font-semibold text-slate-900 dark:text-white">
-                            {m.hall_ticket}
-                          </td>
-                          <td className="py-2.5 px-4 font-medium">{m.name}</td>
-                          <td className="py-2.5 px-4 font-mono text-slate-500 dark:text-slate-400">{m.subject_code}</td>
-                          <td className="py-2.5 px-4">{m.subject_name}</td>
-                          <td className="py-2.5 px-4 text-center">
-                            <span className={`inline-block font-bold px-2.5 py-0.5 rounded-full text-xs ${
-                              m.grade === 'O' || m.grade === 'A+' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
-                              m.grade === 'A' || m.grade === 'B+' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
-                              m.grade === 'F' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
-                              'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
-                            }`}>
-                              {m.grade}
-                            </span>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-[#121212] text-slate-800 dark:text-slate-200">
+                      {filteredMatches.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-12 text-center text-slate-400 font-semibold italic">
+                            No matching records found for the selected grade filter.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        filteredMatches.map((m, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                            <td className="py-2.5 px-4 font-mono font-semibold text-slate-900 dark:text-white">
+                              {m.hall_ticket}
+                            </td>
+                            <td className="py-2.5 px-4 font-medium">{m.name}</td>
+                            <td className="py-2.5 px-4 font-mono text-slate-500 dark:text-slate-400">{m.subject_code}</td>
+                            <td className="py-2.5 px-4">{m.subject_name}</td>
+                            <td className="py-2.5 px-4 text-center">
+                              <span className={`inline-block font-bold px-2.5 py-0.5 rounded-full text-xs ${
+                                m.grade === 'O' || m.grade === 'A+' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                                m.grade === 'A' || m.grade === 'B+' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                                m.grade === 'F' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
+                                'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+                              }`}>
+                                {m.grade}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+</div>
               </div>
             </div>
           )}
