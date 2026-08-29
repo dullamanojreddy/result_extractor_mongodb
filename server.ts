@@ -39,12 +39,20 @@ async function startServer() {
   const app = express();
 
   app.use(cors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://result-extractor-mongodb.onrender.com',
-      /\.vercel\.app$/
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or same-origin)
+      if (!origin) return callback(null, true);
+      // Allow localhost, onrender.com subdomains, vercel.app
+      if (
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.endsWith('.onrender.com') ||
+        origin.endsWith('.vercel.app')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true
   }));
 
@@ -68,8 +76,10 @@ async function startServer() {
 
   // Connect Mongoose for auth models
   try {
-    await mongoose.connect(process.env.MONGO_URI || env.mongoUri);
-    console.log('Mongoose connected for auth');
+    const mongoUri = process.env.MONGO_URI || env.mongoUri;
+    const dbName = process.env.MONGO_DATABASE || env.mongoDatabase || 'result_db';
+    await mongoose.connect(mongoUri, { dbName });
+    console.log(`Mongoose connected for auth (database: ${dbName})`);
   } catch (err) {
     console.error('Mongoose connection error:', err);
   }

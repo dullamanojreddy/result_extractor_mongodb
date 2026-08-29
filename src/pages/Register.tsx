@@ -17,16 +17,28 @@ export default function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPr
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [collegesLoading, setCollegesLoading] = useState(true);
+
   useEffect(() => {
     // Fetch existing colleges for dropdown
+    setCollegesLoading(true);
     fetch(`${API_URL}/api/colleges`)
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (Array.isArray(data)) {
-          setColleges(data.map((c: any) => c.name || c.collegeName).filter(Boolean));
+          const names = data.map((c: any) => c.name || c.collegeName).filter(Boolean);
+          setColleges(names);
         }
       })
-      .catch(() => {});
+      .catch(err => {
+        console.error('Failed to fetch colleges:', err);
+      })
+      .finally(() => {
+        setCollegesLoading(false);
+      });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

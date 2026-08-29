@@ -9,31 +9,35 @@ const router = Router();
 // Get all colleges (for registration dropdown)
 router.get('/', async (_req: AuthRequest, res: Response) => {
   try {
+    let colleges: any[] = [];
+
     if (db.mongoDb && db.mongoConnected) {
-      const colleges = await db.mongoDb
+      colleges = await db.mongoDb
         .collection('colleges')
         .find({})
-        .project({ collegeName: 1, name: 1 })
+        .project({ collegeName: 1, name: 1, collegeCode: 1, shortName: 1 })
         .sort({ collegeName: 1, name: 1 })
         .toArray();
-
-      return res.json(
-        colleges.map((c: any) => ({
-          id: c._id,
-          name: c.collegeName || c.name || '',
-          collegeName: c.collegeName || c.name || ''
-        }))
-      );
     }
 
-    const colleges = await College.find({}).sort({ collegeName: 1, name: 1 });
-    return res.json(
-      colleges.map(c => ({
-        id: c._id,
-        name: c.collegeName || c.name || '',
-        collegeName: c.collegeName || c.name || ''
-      }))
-    );
+    if (!colleges || colleges.length === 0) {
+      colleges = await College.find({}).sort({ collegeName: 1, name: 1 }).lean();
+    }
+
+    const formatted = colleges
+      .map((c: any) => {
+        const displayName = c.collegeName || c.name || c.shortName || '';
+        return {
+          id: c._id,
+          name: displayName,
+          collegeName: displayName,
+          collegeCode: c.collegeCode || '',
+          shortName: c.shortName || ''
+        };
+      })
+      .filter(c => Boolean(c.name));
+
+    return res.json(formatted);
   } catch (err: any) {
     console.error('Get colleges error:', err);
     return res.status(500).json({ error: 'Failed to fetch colleges' });
