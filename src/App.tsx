@@ -147,8 +147,9 @@ export default function App() {
     }
   }, [authed]);
 
-  // Load recent students on mount
+  // Load recent students on auth
   useEffect(() => {
+    if (!authed) return;
     const fetchRecent = async () => {
       try {
         const data = await getRecentStudents();
@@ -158,7 +159,7 @@ export default function App() {
       }
     };
     fetchRecent();
-  }, []);
+  }, [authed]);
 
   useEffect(() => {
     fetchStatsAndLogs();

@@ -132,9 +132,12 @@ export default function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPr
                   value={college}
                   onChange={e => setCollege(e.target.value)}
                   required
-                  className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none cursor-pointer"
+                  disabled={collegesLoading}
+                  className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none cursor-pointer disabled:opacity-60"
                 >
-                  <option value="" className="text-slate-400">Select your college name</option>
+                  <option value="" className="text-slate-400">
+                    {collegesLoading ? 'Loading colleges...' : `-- Select your college (${colleges.length} available) --`}
+                  </option>
                   {colleges.map(c => (
                     <option key={c} value={c}>
                       {c}
