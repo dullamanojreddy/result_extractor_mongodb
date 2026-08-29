@@ -23,7 +23,7 @@ export default function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPr
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setColleges(data.map((c: any) => c.name));
+          setColleges(data.map((c: any) => c.name || c.collegeName).filter(Boolean));
         }
       })
       .catch(() => {});
