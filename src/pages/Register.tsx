@@ -22,11 +22,17 @@ export default function RegisterPage({ onRegister, onSwitchToLogin }: RegisterPr
   useEffect(() => {
     // Fetch existing colleges for dropdown
     setCollegesLoading(true);
-    fetch(`${API_URL}/api/colleges`)
-      .then(async res => {
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        return res.json();
-      })
+
+    const fetchCollegesFrom = async (baseUrl: string) => {
+      const res = await fetch(`${baseUrl}/api/colleges`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error(data.error || 'Invalid college data');
+      return data;
+    };
+
+    fetchCollegesFrom(API_URL)
+      .catch(() => fetchCollegesFrom('https://result-extractor-mongodb-1.onrender.com'))
       .then(data => {
         if (Array.isArray(data)) {
           const names = data.map((c: any) => c.name || c.collegeName).filter(Boolean);
